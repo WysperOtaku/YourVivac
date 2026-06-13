@@ -1,0 +1,73 @@
+/* YourVivac — variables CSS de tema (portadas de docs/yourvivac.css).
+   Importar una vez en la app web. Cambiar tema con data-theme="dark|light",
+   tipografía con data-type="a|b|c", densidad con data-density. */
+
+:root {
+  --font-display: 'Young Serif', Georgia, serif;
+  --font-body: 'Newsreader', Georgia, serif;
+  --font-mono: 'Spline Sans Mono', ui-monospace, 'SF Mono', Menlo, monospace;
+  --d: 1;
+}
+[data-type='b'] {
+  --font-display: 'Newsreader', Georgia, serif;
+}
+[data-type='c'] {
+  --font-display: 'DM Serif Display', Georgia, serif;
+}
+[data-density='compact'] {
+  --d: 0.82;
+}
+[data-density='comfy'] {
+  --d: 1.18;
+}
+
+:root,
+[data-theme='dark'] {
+  --bg: #0e1411;
+  --bg-2: #141d17;
+  --bg-3: #1c271f;
+  --bg-4: #243029;
+  --ink: #e9ece3;
+  --ink-2: #a9b4a6;
+  --ink-3: #76836f;
+  --line: rgba(180, 205, 180, 0.13);
+  --line-2: rgba(180, 205, 180, 0.22);
+  --accent: #a8d77c;
+  --accent-2: #86b75f;
+  --accent-ink: #11160f;
+  --terra: #d68a57;
+  --terra-2: #b06a3c;
+  --sky: #79b8c4;
+  --paper: #e7ddc6;
+  --paper-ink: #2c2519;
+  --board: #232c22;
+  --board-line: rgba(168, 215, 124, 0.1);
+  --topo: rgba(168, 215, 124, 0.07);
+  --shadow: 0 2px 4px rgba(0, 0, 0, 0.35), 0 12px 34px rgba(0, 0, 0, 0.34);
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.35), 0 4px 14px rgba(0, 0, 0, 0.28);
+}
+
+[data-theme='light'] {
+  --bg: #ece5d6;
+  --bg-2: #f4eee2;
+  --bg-3: #fbf7ee;
+  --bg-4: #ffffff;
+  --ink: #1d241d;
+  --ink-2: #515a4c;
+  --ink-3: #8a9082;
+  --line: rgba(40, 52, 35, 0.14);
+  --line-2: rgba(40, 52, 35, 0.24);
+  --accent: #3f7a4d;
+  --accent-2: #326140;
+  --accent-ink: #f7f4ea;
+  --terra: #b96e3c;
+  --terra-2: #9a5829;
+  --sky: #3d7d8c;
+  --paper: #f2ead4;
+  --paper-ink: #3a3120;
+  --board: #d9cdb0;
+  --board-line: rgba(90, 70, 40, 0.12);
+  --topo: rgba(80, 62, 34, 0.08);
+  --shadow: 0 2px 4px rgba(60, 48, 28, 0.1), 0 14px 36px rgba(60, 48, 28, 0.13);
+  --shadow-sm: 0 1px 2px rgba(60, 48, 28, 0.1), 0 5px 16px rgba(60, 48, 28, 0.1);
+}
