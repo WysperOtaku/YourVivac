@@ -2,6 +2,8 @@
 
 # 🏔️ YourVivac
 
+![YpurVivac Banner](./docs/assets/YourVivacBanner.png)
+
 **El campamento base para preparar excursiones y vivacs en grupo.**
 
 Crea una salida, reúne a tu gente y montad juntos el tablero: rutas, listas de equipo, mapas y consejos en un mismo sitio.
