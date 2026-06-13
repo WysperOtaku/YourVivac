@@ -31,7 +31,14 @@ YourVivac es una plataforma (web + móvil) para planificar excursiones de monta�
 
 ## Estado del proyecto
 
-> 🎨 **Fase actual: diseño y especificación.** El repositorio contiene el diseño completo de la interfaz y la documentación técnica (stack, modelo de datos, endpoints, lógica, testing y workflow). **La implementación se realiza a partir de estas guías.**
+> 🏗️ **Fase actual: construcción.** El **andamiaje (base) está montado y compila en verde**: monorepo
+> Turborepo + pnpm, packages compartidos (`types`, `utils`, `validation`, `sdk`, `design-tokens`,
+> `tailwind-preset`), esqueleto del **API** (cadena de middlewares, todos los modelos Mongoose, rutas
+> de cada dominio cableadas) y de la **web** (Vite + Tailwind/DaisyUI con los tokens, primitivos de UI,
+> stores, router y pantallas). Los dominios concretos (lógica de cada endpoint y contenido de cada
+> pantalla) se rellenan por módulos. `apps/mobile` está scaffoldeado (ver su README).
+>
+> Verificación de la base: `pnpm install && pnpm -r typecheck && pnpm -r test && pnpm build` en verde.
 
 ---
 
