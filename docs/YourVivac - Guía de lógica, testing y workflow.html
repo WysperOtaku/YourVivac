@@ -1,0 +1,557 @@
+<!doctype html>
+<html lang="es" data-theme="light">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>YourVivac · Lógica de negocio, testing y workflow</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Young+Serif&family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;0,6..72,600;1,6..72,400&family=Spline+Sans+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="yourvivac.css" />
+  <link rel="stylesheet" href="yourvivac-doc.css" />
+  <style>
+    .mermaid { background: var(--bg-2); border-radius: 16px; box-shadow: inset 0 0 0 1px var(--line); padding: 24px; margin: 16px 0; overflow-x: auto; text-align: center; }
+    .mermaid svg { max-width: 100%; height: auto; }
+    .figcap { font-family: var(--font-mono); font-size: 12px; color: var(--ink-3); letter-spacing: .04em; margin: -6px 0 22px; }
+  </style>
+</head>
+<body>
+<div class="doc">
+
+  <!-- ============== TOC ============== -->
+  <nav class="toc">
+    <div class="toc__brand">
+      <span style="display:inline-flex;align-items:center;gap:10px">
+        <svg width="34" height="34" viewBox="0 0 40 40" aria-hidden="true">
+          <circle cx="20" cy="20" r="18.5" fill="none" stroke="var(--accent)" stroke-width="1.4" opacity="0.45"/>
+          <circle cx="20" cy="20" r="13" fill="none" stroke="var(--accent)" stroke-width="1.4" opacity="0.75"/>
+          <path d="M9 27 L18 12 L23 20 L26.5 15 L31 27 Z" fill="var(--accent)"/>
+        </svg>
+        <span style="font-family:var(--font-display);font-size:21px">Your<span style="color:var(--accent-2)">Vivac</span></span>
+      </span>
+      <div class="mono" style="font-size:11px;color:var(--ink-3);margin-top:8px;letter-spacing:.04em">Lógica · Testing · Workflow · v1.0</div>
+    </div>
+
+    <div class="toc__group">Lógica de negocio</div>
+    <a href="#alcance">1 · Cómo usar esta guía</a>
+    <a href="#reglas">2 · Reglas transversales</a>
+    <a href="#casos">3 · Casos de uso por dominio</a>
+    <a href="#estados">4 · Máquinas de estado</a>
+
+    <div class="toc__group">Calidad</div>
+    <a href="#testing">5 · Estrategia de testing</a>
+    <a href="#unit">6 · Tests unitarios (Jest)</a>
+    <a href="#e2e">7 · Tests E2E (Playwright)</a>
+
+    <div class="toc__group">Entrega</div>
+    <a href="#cicd">8 · Pipeline CI/CD</a>
+    <a href="#ramas">9 · Ramas y contribución</a>
+    <a href="#feature">10 · Añadir una funcionalidad</a>
+    <a href="#devops">11 · Despliegue y DevOps</a>
+    <a href="#dod">12 · Definition of Done</a>
+  </nav>
+
+  <!-- ============== MAIN ============== -->
+  <main class="main">
+
+    <header style="margin-bottom:18px">
+      <div class="eyebrow">YourVivac · Engineering Playbook</div>
+      <h1>Lógica de negocio,<br>testing y workflow</h1>
+      <p class="lead" style="margin-top:18px;max-width:710px">
+        Qué hace cada funcionalidad, cómo se prueba y cómo se contribuye. El manual operativo para construir YourVivac
+        de forma consistente: casos de uso, tests (Jest + Playwright), CI/CD y el flujo para añadir features.
+      </p>
+    </header>
+
+    <div class="notice notice--accent">
+      <div class="notice__icon"><svg class="ic" viewBox="0 0 24 24"><path d="M4 5h16v14H4zM4 5l8 6 8-6"/></svg></div>
+      <div>
+        <h4>Trío de guías</h4>
+        <p>Esta cierra el set: <strong>Diseño</strong> (UI/tokens) · <strong>Desarrollo</strong> (stack/modelo/endpoints) ·
+          <strong>Agregador</strong> (scraping) · y esta, la <strong>lógica + calidad + workflow</strong>. Los casos de uso
+          se derivan del diseño ya existente; afina cada regla durante la implementación.</p>
+      </div>
+    </div>
+
+    <!-- ============== 1 · ALCANCE ============== -->
+    <section id="alcance">
+      <div class="eyebrow">01</div>
+      <h2>Cómo usar esta guía</h2>
+      <p>Cada funcionalidad se piensa primero como <strong>caso de uso</strong> (actor · entrada · reglas · salida · errores)
+        y solo después se escribe código. Esta guía da el formato, el contenido base derivado del diseño, y el camino que
+        recorre un cambio hasta producción.</p>
+      <div class="grid g3">
+        <div class="card"><h4 style="margin-top:0">Pensar</h4><p style="margin:0;font-size:14px">Define el caso de uso y el contrato (types + validación) antes de tocar lógica.</p></div>
+        <div class="card"><h4 style="margin-top:0">Construir</h4><p style="margin:0;font-size:14px">Backend (modelo→servicio→ruta) y frontend (sdk→store→componente) con tests.</p></div>
+        <div class="card"><h4 style="margin-top:0">Entregar</h4><p style="margin:0;font-size:14px">PR → pipeline verde → review → merge → despliegue automático.</p></div>
+      </div>
+    </section>
+
+    <!-- ============== 2 · REGLAS ============== -->
+    <section id="reglas">
+      <div class="eyebrow">02 · Lógica</div>
+      <h2>Reglas de negocio transversales</h2>
+      <p>Aplican a toda la plataforma. Cualquier caso de uso las hereda.</p>
+      <h3>Roles y permisos</h3>
+      <table>
+        <thead><tr><th>Rol</th><th>Puede</th></tr></thead>
+        <tbody>
+          <tr><td class="mono">user</td><td>Crear y unirse a salidas, pinear, listas, publicar consejos, seguir, comentar.</td></tr>
+          <tr><td class="mono">guide</td><td>Todo lo de <code>user</code> + badge verificado + ofrecer ayuda para montar salidas. Rol <strong>aditivo</strong>, concedido por admin.</td></tr>
+          <tr><td class="mono">admin</td><td>Panel: verificar guías, moderar reportes/contenido, gestionar usuarios, ver analíticas.</td></tr>
+        </tbody>
+      </table>
+      <h3>Autorización por pertenencia y propiedad</h3>
+      <ul>
+        <li><strong>Pertenencia</strong> — el contenido de una salida (tablero, chat, pines, mensajes) solo es accesible para sus <code>members</code>.</li>
+        <li><strong>Propiedad</strong> — editar/eliminar una salida = <code>owner</code>; editar/eliminar un pin o lista = su <code>author/owner</code> (el owner de la salida puede moderar su tablero).</li>
+        <li><strong>Visibilidad</strong> — <code>public</code> aparece en Explorar y en el perfil; <code>private</code> solo para miembros/seguidos según el recurso.</li>
+      </ul>
+      <h3>Consistencia de datos</h3>
+      <ul>
+        <li><strong>Contadores denormalizados</strong> (<code>stats</code>, <code>counts</code>) se actualizan en la misma operación que el dato; reconciliables por un job.</li>
+        <li><strong>Idempotencia</strong> — invitar, seguir y dar like son idempotentes (repetir no duplica).</li>
+        <li><strong>Borrado suave</strong> — mensajes y contenido moderable usan <code>deletedAt</code>, no borrado físico.</li>
+        <li><strong>Validación en dos capas</strong> — Zod en el request (forma) + validadores de Mongoose (invariantes de dominio).</li>
+      </ul>
+    </section>
+
+    <!-- ============== 3 · CASOS DE USO ============== -->
+    <section id="casos">
+      <div class="eyebrow">03 · Lógica</div>
+      <h2>Casos de uso por dominio</h2>
+      <p>Derivados de las pantallas del diseño. Formato uniforme: <strong>actor</strong>, <strong>entrada</strong>,
+        <strong>reglas/lógica</strong>, <strong>devuelve</strong> y <strong>errores</strong>. Estos son los flujos núcleo;
+        el resto se documenta igual al implementarse.</p>
+
+      <h3>Autenticación</h3>
+      <div class="uc">
+        <div class="uc__h"><span class="uc__id">UC-A1</span><span class="uc__t">Acceder con Google</span></div>
+        <div class="uc__b">
+          <div class="uc__row"><div class="uc__k">Actor</div><div class="uc__v">Visitante</div></div>
+          <div class="uc__row"><div class="uc__k">Entrada</div><div class="uc__v"><code>POST /auth/google</code> con el <code>idToken</code> de Firebase obtenido en cliente.</div></div>
+          <div class="uc__row"><div class="uc__k">Lógica</div><div class="uc__v"><ul>
+            <li>Verifica el token con <code>firebase-admin</code>; extrae email, nombre y foto.</li>
+            <li><em>Find-or-create</em> por email. Si ya existe con proveedor <code>password</code>, <strong>enlaza</strong> el proveedor Google (no duplica cuenta).</li>
+            <li>Emite <code>access</code> (~15 min) y <code>refresh</code> (~30 d, persistido en <code>sessions</code>, cookie httpOnly en web).</li>
+            <li>Usuario nuevo → <code>role: 'user'</code>, settings por defecto, <code>emailVerified: true</code>.</li>
+          </ul></div></div>
+          <div class="uc__row"><div class="uc__k">Devuelve</div><div class="uc__v"><code>{ user, accessToken }</code> (+ cookie refresh). <code>201</code> si nuevo, <code>200</code> si existente.</div></div>
+          <div class="uc__row"><div class="uc__k">Errores</div><div class="uc__v err">401 token inválido/expirado · 403 cuenta <code>banned</code>.</div></div>
+        </div>
+      </div>
+
+      <h3>Salidas</h3>
+      <div class="uc">
+        <div class="uc__h"><span class="uc__id">UC-T1</span><span class="uc__t">Crear una salida</span></div>
+        <div class="uc__b">
+          <div class="uc__row"><div class="uc__k">Actor</div><div class="uc__v">Usuario autenticado</div></div>
+          <div class="uc__row"><div class="uc__k">Entrada</div><div class="uc__v"><code>POST /trips</code> · título, fechas, lugar (coords+placeId), dificultad, visibilidad.</div></div>
+          <div class="uc__row"><div class="uc__k">Lógica</div><div class="uc__v"><ul>
+            <li>Crea el <code>trip</code> con <code>owner = req.user</code> y lo añade a <code>members</code> con rol <code>owner</code> y rsvp <code>going</code>.</li>
+            <li>Inicializa el <strong>tablero</strong> (vacío) y el <strong>chat</strong> del grupo; <code>status: 'planning'</code>.</li>
+            <li><code>slug</code> único a partir del título; valida <code>endDate ≥ startDate</code>.</li>
+          </ul></div></div>
+          <div class="uc__row"><div class="uc__k">Devuelve</div><div class="uc__v"><code>201</code> con el trip creado (listo para invitar y pinear).</div></div>
+          <div class="uc__row"><div class="uc__k">Errores</div><div class="uc__v err">422 validación · 401 sin auth.</div></div>
+        </div>
+      </div>
+      <div class="uc">
+        <div class="uc__h"><span class="uc__id">UC-T2</span><span class="uc__t">Invitar amigos</span></div>
+        <div class="uc__b">
+          <div class="uc__row"><div class="uc__k">Actor</div><div class="uc__v">Owner o miembro</div></div>
+          <div class="uc__row"><div class="uc__k">Entrada</div><div class="uc__v"><code>POST /trips/:id/invite</code> · lista de <code>userId</code> o handles.</div></div>
+          <div class="uc__row"><div class="uc__k">Lógica</div><div class="uc__v"><ul>
+            <li>Verifica pertenencia del invitante. Añade miembros con rsvp <code>invited</code> (idempotente: ignora ya presentes).</li>
+            <li>Emite notificación <code>trip_invite</code> a cada invitado (worker de notificaciones + email opcional).</li>
+          </ul></div></div>
+          <div class="uc__row"><div class="uc__k">Devuelve</div><div class="uc__v"><code>200</code> con la lista de miembros actualizada.</div></div>
+          <div class="uc__row"><div class="uc__k">Errores</div><div class="uc__v err">403 no eres miembro · 404 usuario no existe.</div></div>
+        </div>
+      </div>
+      <div class="uc">
+        <div class="uc__h"><span class="uc__id">UC-T4</span><span class="uc__t">Completar salida</span></div>
+        <div class="uc__b">
+          <div class="uc__row"><div class="uc__k">Actor</div><div class="uc__v">Owner</div></div>
+          <div class="uc__row"><div class="uc__k">Lógica</div><div class="uc__v"><ul>
+            <li><code>status → 'completed'</code>, fija <code>completedAt</code>.</li>
+            <li>Incrementa <code>stats</code> de cada miembro <code>going</code> (trips, vivacs si hay pernocta, km, desnivel).</li>
+            <li>Genera <code>activity: 'trip_completed'</code> → aparece en el feed de “tu cordada” (UC-H1).</li>
+            <li>Evalúa logros (achievements) por umbrales.</li>
+          </ul></div></div>
+          <div class="uc__row"><div class="uc__k">Devuelve</div><div class="uc__v"><code>200</code> trip actualizado.</div></div>
+          <div class="uc__row"><div class="uc__k">Errores</div><div class="uc__v err">403 no owner · 409 ya completada.</div></div>
+        </div>
+      </div>
+
+      <h3>Tablero y pines</h3>
+      <div class="uc">
+        <div class="uc__h"><span class="uc__id">UC-B1</span><span class="uc__t">Añadir un pin</span></div>
+        <div class="uc__b">
+          <div class="uc__row"><div class="uc__k">Actor</div><div class="uc__v">Miembro de la salida</div></div>
+          <div class="uc__row"><div class="uc__k">Entrada</div><div class="uc__v"><code>POST /trips/:id/pins</code> · <code>type</code> + payload según tipo (note/photo/link/list/map/text) + <code>layout</code>.</div></div>
+          <div class="uc__row"><div class="uc__k">Lógica</div><div class="uc__v"><ul>
+            <li>Valida pertenencia. Valida el payload del <strong>tipo</strong> (discriminated union en Zod).</li>
+            <li><code>note/text</code>: sanea markdown. <code>link</code>: hace <em>unfurl</em> (título/imagen/dominio). <code>photo</code>: usa media ya subida (UC-M1). <code>list</code>: referencia una <code>gearList</code> propia. <code>map</code>: guarda coords+placeId.</li>
+            <li>Persiste, incrementa <code>trip.stats.pinCount</code> y <strong>emite por Socket.IO</strong> a la sala del trip.</li>
+          </ul></div></div>
+          <div class="uc__row"><div class="uc__k">Devuelve</div><div class="uc__v"><code>201</code> con el pin; los demás miembros lo reciben en tiempo real.</div></div>
+          <div class="uc__row"><div class="uc__k">Errores</div><div class="uc__v err">403 no miembro · 422 payload inválido para el tipo.</div></div>
+        </div>
+      </div>
+      <div class="uc">
+        <div class="uc__h"><span class="uc__id">UC-B2</span><span class="uc__t">Mover / editar un pin</span></div>
+        <div class="uc__b">
+          <div class="uc__row"><div class="uc__k">Actor</div><div class="uc__v">Autor del pin u owner de la salida</div></div>
+          <div class="uc__row"><div class="uc__k">Entrada</div><div class="uc__v"><code>PATCH /pins/:id</code> · <code>layout</code> (x, y, rotación, z) y/o contenido.</div></div>
+          <div class="uc__row"><div class="uc__k">Lógica</div><div class="uc__v">Actualiza posición o contenido; emite el cambio por socket (movimiento = evento ligero, con throttle en cliente).</div></div>
+          <div class="uc__row"><div class="uc__k">Devuelve</div><div class="uc__v"><code>200</code> pin actualizado.</div></div>
+          <div class="uc__row"><div class="uc__k">Errores</div><div class="uc__v err">403 sin permiso.</div></div>
+        </div>
+      </div>
+
+      <h3>Listas de equipo y productos</h3>
+      <div class="uc">
+        <div class="uc__h"><span class="uc__id">UC-G2</span><span class="uc__t">Buscar producto y añadirlo a una lista</span></div>
+        <div class="uc__b">
+          <div class="uc__row"><div class="uc__k">Actor</div><div class="uc__v">Dueño de la lista</div></div>
+          <div class="uc__row"><div class="uc__k">Entrada</div><div class="uc__v"><code>GET /products/search?q=&amp;stores=</code> → elige producto → <code>POST /gear-lists/:id/items</code>.</div></div>
+          <div class="uc__row"><div class="uc__k">Lógica</div><div class="uc__v"><ul>
+            <li>La API hace de <strong>proxy</strong> al agregador (Cordal) con la API key; nunca scrapea ella misma.</li>
+            <li>Al añadir el ítem, guarda <code>product { storeKey, title, url, price, currency, externalId }</code> y recalcula <code>totalWeight</code>.</li>
+          </ul></div></div>
+          <div class="uc__row"><div class="uc__k">Devuelve</div><div class="uc__v"><code>200</code> resultados agrupados (search) · <code>201</code> ítem añadido (con peso total recalculado).</div></div>
+          <div class="uc__row"><div class="uc__k">Errores</div><div class="uc__v err">502/207 si el agregador da resultado parcial (se indica <code>partial</code>) · 403 no eres el dueño.</div></div>
+        </div>
+      </div>
+
+      <h3>Consejos · perfil · admin (resumen)</h3>
+      <table>
+        <thead><tr><th>Caso</th><th>Regla núcleo</th><th>Devuelve</th></tr></thead>
+        <tbody>
+          <tr><td><strong>UC-P1</strong> Publicar consejo</td><td>Markdown saneado; <code>draft</code>→<code>published</code> fija <code>publishedAt</code>; pasa por moderación.</td><td>201 tip</td></tr>
+          <tr><td><strong>UC-P2</strong> Like / comentar</td><td>Idempotente; actualiza <code>counts</code>; notifica al autor.</td><td>200</td></tr>
+          <tr><td><strong>UC-H1</strong> Feed de inicio</td><td>Lee <code>activities</code> de a quién sigues + propias, por recencia; respeta visibilidad.</td><td>200 feed paginado</td></tr>
+          <tr><td><strong>UC-U2</strong> Solicitar guía</td><td>Crea <code>guideApplication</code> <code>pending</code> + sube documentos; notifica a admin.</td><td>201 solicitud</td></tr>
+          <tr><td><strong>UC-AD1</strong> Verificar guía</td><td>Admin aprueba→<code>user.role='guide'</code> + <code>guide.verifiedAt</code>; rechaza→motivo. Notifica al solicitante.</td><td>200</td></tr>
+          <tr><td><strong>UC-AD2</strong> Resolver reporte</td><td>Cambia <code>report.status</code>; puede ocultar contenido o suspender usuario.</td><td>200</td></tr>
+          <tr><td><strong>UC-M1</strong> Subir imagen</td><td>Sharp optimiza→Cloudinary; crea <code>media</code> <code>pending</code>; worker modera y aprueba/oculta.</td><td>201 media</td></tr>
+        </tbody>
+      </table>
+    </section>
+
+    <!-- ============== 4 · ESTADOS ============== -->
+    <section id="estados">
+      <div class="eyebrow">04 · Lógica</div>
+      <h2>Máquinas de estado</h2>
+      <p>Los estados explícitos evitan datos ambiguos. Transiciones permitidas:</p>
+      <div class="grid g2">
+        <div class="card">
+          <h4 style="margin-top:0">Salida (trip.status)</h4>
+          <div class="diag" style="margin:8px 0 0">planning → confirmed → completed
+   ↘ cancelled (desde cualquiera salvo completed)</div>
+        </div>
+        <div class="card">
+          <h4 style="margin-top:0">RSVP de miembro</h4>
+          <div class="diag" style="margin:8px 0 0">invited → going | maybe | declined
+going ⇄ maybe ⇄ declined (editable)</div>
+        </div>
+        <div class="card">
+          <h4 style="margin-top:0">Solicitud de guía</h4>
+          <div class="diag" style="margin:8px 0 0">pending → in_review → approved
+                      ↘ rejected</div>
+        </div>
+        <div class="card">
+          <h4 style="margin-top:0">Consejo (tip.status)</h4>
+          <div class="diag" style="margin:8px 0 0">draft → published → archived
+published → (moderación) removed</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============== 5 · TESTING ============== -->
+    <section id="testing">
+      <div class="eyebrow">05 · Calidad</div>
+      <h2>Estrategia de testing</h2>
+      <p>Pirámide clásica: <strong>muchos</strong> unitarios rápidos, <strong>algunos</strong> de integración, <strong>pocos</strong>
+        E2E sobre los recorridos críticos. TypeScript estricto como primera red de seguridad.</p>
+      <pre class="mermaid">
+flowchart TD
+  E2E["E2E · Playwright<br/>recorridos críticos · pocos"]:::top
+  INT["Integración · Jest + Supertest<br/>rutas API + Mongo en memoria"]:::mid
+  UNIT["Unitarios · Jest<br/>utils, servicios, validación · muchos"]:::base
+  TYPE["TypeScript estricto + ESLint<br/>red de seguridad base"]:::found
+  E2E --> INT --> UNIT --> TYPE
+  classDef top fill:#f2ead4,stroke:#b96e3c;
+  classDef mid fill:#fbf7ee,stroke:#3d7d8c;
+  classDef base fill:#fbf7ee,stroke:#3f7a4d;
+  classDef found fill:#ece5d6,stroke:#cbb890;
+      </pre>
+      <p class="figcap">Fig. 1 — Pirámide de testing de YourVivac.</p>
+      <table>
+        <thead><tr><th>Nivel</th><th>Herramienta</th><th>Qué cubre</th></tr></thead>
+        <tbody>
+          <tr><td>Unitario</td><td class="mono">Jest + ts-jest</td><td>Funciones puras (<code>utils</code>), servicios con repos mockeados, esquemas Zod.</td></tr>
+          <tr><td>Integración</td><td class="mono">Jest + Supertest + mongodb-memory-server</td><td>Endpoints reales contra Mongo en memoria: auth, guards de permiso, casos de uso.</td></tr>
+          <tr><td>Componentes</td><td class="mono">Vitest/RTL <span style="color:var(--ink-3)">(web)</span></td><td>Render y comportamiento de componentes clave.</td></tr>
+          <tr><td>E2E</td><td class="mono">Playwright</td><td>Recorridos completos en navegador real sobre la web.</td></tr>
+        </tbody>
+      </table>
+      <div class="notice">
+        <div class="notice__icon"><svg class="ic" viewBox="0 0 24 24"><path d="M5 12.5 10 17 19 7"/></svg></div>
+        <div><h4>Cobertura y datos</h4><p style="margin:0">Umbral de cobertura en lógica de dominio (<code>services/</code>, <code>utils/</code>): <strong>≥ 80%</strong>.
+          Datos de test mediante <strong>factories</strong> (no fixtures rígidos). Cada test es independiente y limpia su estado.</p></div>
+      </div>
+    </section>
+
+    <!-- ============== 6 · UNIT ============== -->
+    <section id="unit">
+      <div class="eyebrow">06 · Calidad</div>
+      <h2>Tests unitarios — Jest</h2>
+      <p>El grueso de la confianza. Rápidos, sin red ni base de datos real. Viven junto al código (<code>*.test.ts</code>).</p>
+      <pre><code><span class="c">// utils/gear.test.ts — función pura, fácil de fijar</span>
+<span class="k">import</span> { totalWeight } <span class="k">from</span> <span class="t">'./gear'</span>;
+
+describe(<span class="t">'totalWeight'</span>, () =&gt; {
+  it(<span class="t">'suma el peso de los ítems en gramos'</span>, () =&gt; {
+    <span class="k">const</span> items = [{ weightGrams: 1180 }, { weightGrams: 480 }];
+    expect(totalWeight(items)).toBe(1660);
+  });
+  it(<span class="t">'ignora ítems sin peso'</span>, () =&gt; {
+    expect(totalWeight([{ weightGrams: 100 }, {}])).toBe(100);
+  });
+});</code></pre>
+      <pre><code><span class="c">// services/trip.service.test.ts — repos mockeados</span>
+it(<span class="t">'al completar, incrementa stats de los miembros going'</span>, <span class="k">async</span> () =&gt; {
+  <span class="k">const</span> repo = makeTripRepoMock();
+  <span class="k">const</span> svc = createTripService({ repo, activities: mockActivities });
+  <span class="k">await</span> svc.complete(tripId, ownerId);
+  expect(repo.bumpMemberStats).toHaveBeenCalledWith(tripId, expect.any(Object));
+  expect(mockActivities.create).toHaveBeenCalledWith(
+    expect.objectContaining({ type: <span class="t">'trip_completed'</span> })
+  );
+});</code></pre>
+      <h4>Qué probar por capa</h4>
+      <ul>
+        <li><strong>utils</strong> — entradas/salidas y casos límite (peso, slug, fingerprint, formato de unidades).</li>
+        <li><strong>validation</strong> — cada esquema Zod acepta lo válido y rechaza lo inválido (incluida la unión discriminada de pines).</li>
+        <li><strong>services</strong> — reglas de negocio con dependencias mockeadas (permisos, transiciones de estado, idempotencia).</li>
+      </ul>
+    </section>
+
+    <!-- ============== 7 · E2E ============== -->
+    <section id="e2e">
+      <div class="eyebrow">07 · Calidad</div>
+      <h2>Tests E2E — Playwright</h2>
+      <p>Pocos, pero protegen los recorridos que <strong>no pueden romperse</strong>. Corren contra un entorno efímero
+        (web + API + Mongo de test) levantado en CI. Misma herramienta que usa el agregador para su scraping.</p>
+      <h4>Recorridos críticos a cubrir</h4>
+      <table>
+        <thead><tr><th>Journey</th><th>Pasos</th></tr></thead>
+        <tbody>
+          <tr><td>Acceso</td><td>Login (Google mockeado) → aterriza en Inicio.</td></tr>
+          <tr><td>Crear y poblar salida</td><td>Crear salida → invitar → abrir tablero → añadir pin de nota y de lista.</td></tr>
+          <tr><td>Lista de equipo</td><td>Buscar producto (agregador mockeado) → añadir ítem → ver peso total.</td></tr>
+          <tr><td>Consejo</td><td>Publicar consejo en Markdown → aparece en el feed de Consejos.</td></tr>
+          <tr><td>Admin</td><td>Solicitar guía → admin aprueba → badge de guía visible en el perfil.</td></tr>
+        </tbody>
+      </table>
+      <pre><code><span class="c">// e2e/create-trip.spec.ts</span>
+test(<span class="t">'crear salida y añadir un pin de nota'</span>, <span class="k">async</span> ({ page }) =&gt; {
+  <span class="k">await</span> loginAs(page, <span class="t">'marcos'</span>);
+  <span class="k">await</span> page.getByRole(<span class="t">'button'</span>, { name: <span class="t">'Nueva salida'</span> }).click();
+  <span class="k">await</span> page.getByLabel(<span class="t">'Nombre de la salida'</span>).fill(<span class="t">'Vivac en el Aneto'</span>);
+  <span class="k">await</span> page.getByRole(<span class="t">'button'</span>, { name: <span class="t">'Continuar al tablero'</span> }).click();
+  <span class="k">await</span> page.getByRole(<span class="t">'button'</span>, { name: <span class="t">'Añadir pin'</span> }).click();
+  <span class="k">await</span> page.getByText(<span class="t">'Nota'</span>).click();
+  <span class="k">await</span> expect(page.getByTestId(<span class="t">'board'</span>)).toContainText(<span class="t">'Nota'</span>);
+});</code></pre>
+      <p><small>Marca elementos con <code>data-testid</code> estables. Los servicios externos (Firebase, agregador, Cloudinary)
+        se <strong>mockean</strong> en E2E para que sean deterministas.</small></p>
+    </section>
+
+    <!-- ============== 8 · CICD ============== -->
+    <section id="cicd">
+      <div class="eyebrow">08 · Entrega</div>
+      <h2>Pipeline CI/CD</h2>
+      <p>Con <strong>GitHub Actions</strong> + caché de <strong>Turborepo</strong> (solo se reconstruye/prueba lo afectado:
+        <code>turbo run --filter=...[origin/main]</code>). Cada PR pasa por la misma puerta de calidad.</p>
+      <pre class="mermaid">
+flowchart LR
+  PR(["Push / Pull Request"]) --> I["Install<br/>pnpm + turbo cache"]
+  I --> L["Lint<br/>ESLint + Prettier"]
+  L --> T["Typecheck<br/>tsc --noEmit"]
+  T --> U["Unit + Integración<br/>Jest + cobertura"]
+  U --> B["Build<br/>turbo build (afectados)"]
+  B --> E["E2E<br/>Playwright"]
+  E --> G{"¿Todo verde<br/>+ 1 review?"}
+  G -->|"no"| X["Bloquea merge"]
+  G -->|"sí · merge a develop"| DS["Deploy → Staging (Railway)"]
+  G -->|"sí · merge/tag a main"| DP["Deploy → Producción (Railway)"]
+      </pre>
+      <p class="figcap">Fig. 2 — Pipeline: una sola puerta de calidad; el destino del deploy depende de la rama.</p>
+      <table>
+        <thead><tr><th>Etapa</th><th>Falla si…</th></tr></thead>
+        <tbody>
+          <tr><td class="mono">lint</td><td>Hay errores de ESLint o formato no aplicado.</td></tr>
+          <tr><td class="mono">typecheck</td><td><code>tsc</code> encuentra cualquier error de tipos.</td></tr>
+          <tr><td class="mono">test</td><td>Falla un test o la cobertura baja del umbral.</td></tr>
+          <tr><td class="mono">build</td><td>No compila alguna app/package afectado.</td></tr>
+          <tr><td class="mono">e2e</td><td>Se rompe un recorrido crítico.</td></tr>
+        </tbody>
+      </table>
+    </section>
+
+    <!-- ============== 9 · RAMAS ============== -->
+    <section id="ramas">
+      <div class="eyebrow">09 · Entrega</div>
+      <h2>Ramas y contribución</h2>
+      <p>Modelo <strong>trunk-based</strong> con ramas de feature cortas: <code>main</code> = producción, <code>develop</code> = staging,
+        y <code>feat/*</code> · <code>fix/*</code> que se integran por PR.</p>
+      <pre class="mermaid">
+gitGraph
+  commit id: "main"
+  branch develop
+  commit id: "dev"
+  branch feat/board-dnd
+  commit id: "wip"
+  commit id: "tests"
+  checkout develop
+  merge feat/board-dnd id: "PR #42"
+  commit id: "staging ok"
+  checkout main
+  merge develop id: "release v1.1"
+      </pre>
+      <p class="figcap">Fig. 3 — Una feature nace de <code>develop</code>, se prueba en staging y llega a <code>main</code> en una release.</p>
+      <div class="grid g2">
+        <div class="card">
+          <h4 style="margin-top:0">Convenciones</h4>
+          <ul style="margin:0;font-size:14.5px">
+            <li><strong>Conventional Commits</strong>: <code>feat:</code>, <code>fix:</code>, <code>chore:</code>, <code>test:</code>…</li>
+            <li>Ramas: <code>feat/&lt;scope&gt;-&lt;desc&gt;</code>, cortas y enfocadas.</li>
+            <li>Una PR = un cambio coherente; descripción + captura/preview si toca UI.</li>
+          </ul>
+        </div>
+        <div class="card">
+          <h4 style="margin-top:0">Reglas de PR</h4>
+          <ul style="margin:0;font-size:14.5px">
+            <li>CI verde obligatorio + <strong>1 review</strong> mínimo.</li>
+            <li>Sin bajar cobertura; sin <code>any</code> nuevos sin justificar.</li>
+            <li>Actualiza contratos compartidos (types/validation/sdk) si el endpoint cambia.</li>
+            <li>Squash merge con mensaje convencional.</li>
+          </ul>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============== 10 · FEATURE ============== -->
+    <section id="feature">
+      <div class="eyebrow">10 · Entrega</div>
+      <h2>Cómo añadir una funcionalidad</h2>
+      <p>El camino que recorre <strong>cualquier</strong> feature, de la idea al despliegue. Pensar en este orden evita
+        retrabajo y mantiene los contratos sincronizados entre web, móvil y API.</p>
+      <div class="steps">
+        <div class="step"><div class="step__n">1</div><div class="step__b"><h4>Define el caso de uso</h4><p>Actor · entrada · reglas · devuelve · errores (formato de la sección 3). Sin esto, no se escribe código.</p></div></div>
+        <div class="step"><div class="step__n">2</div><div class="step__b"><h4>Actualiza los contratos</h4><p>Tipos en <code>@yourvivac/types</code>, esquema Zod en <code>@yourvivac/validation</code> y función en <code>@yourvivac/sdk</code>. Fuente única para front y back.</p></div></div>
+        <div class="step"><div class="step__n">3</div><div class="step__b"><h4>Backend: modelo → servicio → ruta</h4><p>Ajusta el modelo Mongoose si hace falta, escribe la lógica en el servicio (con sus reglas), exponla en una ruta con el middleware de validación y los guards de permiso. Tests unitarios + integración.</p></div></div>
+        <div class="step"><div class="step__n">4</div><div class="step__b"><h4>Frontend: sdk → store → componente</h4><p>Consume el SDK con TanStack Query, conecta el store de Zustand si hay estado de UI, y construye el componente con la convención de <code>styles</code> + tokens. Reusa en web y móvil lo posible.</p></div></div>
+        <div class="step"><div class="step__n">5</div><div class="step__b"><h4>E2E si es recorrido crítico</h4><p>Añade o amplía un spec de Playwright para el journey afectado.</p></div></div>
+        <div class="step"><div class="step__n">6</div><div class="step__b"><h4>PR → pipeline → review → deploy</h4><p>Abre la PR; pasa la puerta de calidad; review; merge a <code>develop</code> (staging) y, en release, a <code>main</code> (producción).</p></div></div>
+      </div>
+    </section>
+
+    <!-- ============== 11 · DEVOPS ============== -->
+    <section id="devops">
+      <div class="eyebrow">11 · Entrega</div>
+      <h2>Despliegue y DevOps</h2>
+      <h3>Entornos</h3>
+      <table>
+        <thead><tr><th>Entorno</th><th>Rama</th><th>Uso</th></tr></thead>
+        <tbody>
+          <tr><td><strong>local</strong></td><td class="mono">feat/*</td><td>Desarrollo. Mongo/Redis locales o de dev en Railway; servicios externos mockeados o sandbox.</td></tr>
+          <tr><td><strong>staging</strong></td><td class="mono">develop</td><td>Espejo de producción en Railway. Donde se valida antes de release y corren los E2E de humo.</td></tr>
+          <tr><td><strong>producción</strong></td><td class="mono">main</td><td>Despliegue automático en merge/tag. Datos reales.</td></tr>
+        </tbody>
+      </table>
+      <h3>Prácticas</h3>
+      <ul>
+        <li><strong>Secretos</strong> en variables de Railway por entorno (nunca en el repo). Paridad de variables entre staging y prod.</li>
+        <li><strong>Migraciones</strong> de datos versionadas (p. ej. <code>migrate-mongo</code>), ejecutadas en el deploy.</li>
+        <li><strong>Healthchecks</strong> (<code>/health</code>) en API, workers y agregador; Railway reinicia si fallan.</li>
+        <li><strong>Observabilidad</strong>: logs estructurados con Pino + (opcional) seguimiento de errores (Sentry). Métricas del agregador por tienda.</li>
+        <li><strong>Rollback</strong>: redeploy de la versión anterior en Railway; releases etiquetadas para poder volver atrás.</li>
+        <li><strong>Migración de la imagen</strong> del agregador: build Docker con navegadores de Playwright (ver guía de Cordal).</li>
+      </ul>
+    </section>
+
+    <!-- ============== 12 · DoD ============== -->
+    <section id="dod">
+      <div class="eyebrow">12</div>
+      <h2>Definition of Done</h2>
+      <div class="card">
+        <ul style="margin:0;list-style:none;padding:0;columns:2;column-gap:32px">
+          <li>☐ Caso de uso documentado (actor/entrada/reglas/salida/errores).</li>
+          <li>☐ Contratos actualizados (types · validation · sdk).</li>
+          <li>☐ Validación de request (Zod) + guards de permiso.</li>
+          <li>☐ Tests unitarios e integración pasando.</li>
+          <li>☐ E2E del journey (si crítico).</li>
+          <li>☐ Sin errores de tipos ni de lint; cobertura no baja.</li>
+          <li>☐ UI fiel a tokens y convención de componentes.</li>
+          <li>☐ Funciona en web y móvil (si aplica).</li>
+          <li>☐ Estados y contadores consistentes.</li>
+          <li>☐ PR con review aprobada y CI verde.</li>
+        </ul>
+      </div>
+      <div class="notice" style="margin-top:24px">
+        <div class="notice__icon"><svg class="ic" viewBox="0 0 24 24"><path d="M3 19 10 7l4 6 2-3 5 9z"/></svg></div>
+        <div><h4>Set completo</h4><p style="margin:0">Con las cuatro guías —<strong>Diseño</strong>, <strong>Desarrollo</strong>,
+          <strong>Agregador</strong> y esta de <strong>Lógica/Testing/Workflow</strong>— un equipo o agente tiene el qué, el cómo,
+          el con-qué y el cómo-se-trabaja para construir YourVivac de extremo a extremo.</p></div>
+      </div>
+      <div class="foot">YourVivac · Lógica de negocio · Testing (Jest + Playwright) · CI/CD · Workflow de contribución · v1.0</div>
+    </section>
+
+  </main>
+</div>
+
+<script type="module">
+  import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.esm.min.mjs';
+  mermaid.initialize({
+    startOnLoad: false,
+    securityLevel: 'loose',
+    theme: 'base',
+    fontFamily: 'Spline Sans Mono, ui-monospace, monospace',
+    themeVariables: {
+      background: '#f4eee2',
+      primaryColor: '#fbf7ee',
+      primaryBorderColor: '#cbb890',
+      primaryTextColor: '#1d241d',
+      secondaryColor: '#ece5d6',
+      tertiaryColor: '#f2ead4',
+      lineColor: '#3f7a4d',
+      textColor: '#1d241d',
+      mainBkg: '#fbf7ee',
+      nodeBorder: '#cbb890',
+      clusterBkg: '#ece5d6',
+      clusterBorder: '#cbb890',
+      edgeLabelBackground: '#f4eee2',
+      actorBkg: '#fbf7ee',
+      actorBorder: '#cbb890',
+      actorTextColor: '#1d241d',
+      signalColor: '#3f7a4d',
+      signalTextColor: '#515a4c',
+      labelBoxBkgColor: '#ece5d6',
+      labelBoxBorderColor: '#cbb890',
+      noteBkgColor: '#f2ead4',
+      noteTextColor: '#3a3120',
+      noteBorderColor: '#cbb890',
+      git0: '#3f7a4d', git1: '#b96e3c', git2: '#3d7d8c', git3: '#9a5829'
+    },
+    flowchart: { curve: 'basis', padding: 14, useMaxWidth: true },
+    sequence: { useMaxWidth: true, mirrorActors: false },
+    gitGraph: { useMaxWidth: true }
+  });
+  mermaid.run({ querySelector: '.mermaid' });
+</script>
+</body>
+</html>

@@ -1,0 +1,500 @@
+<!doctype html>
+<html lang="es" data-theme="light">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>YourVivac · Guía de implementación de diseño</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Young+Serif&family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;0,6..72,600;1,6..72,400&family=DM+Serif+Display&family=Spline+Sans+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="yourvivac.css" />
+  <link rel="stylesheet" href="yourvivac-doc.css" />
+</head>
+<body>
+<div class="doc">
+
+  <!-- ============== TOC ============== -->
+  <nav class="toc">
+    <div class="toc__brand">
+      <span style="display:inline-flex;align-items:center;gap:10px">
+        <svg width="34" height="34" viewBox="0 0 40 40" aria-hidden="true">
+          <circle cx="20" cy="20" r="18.5" fill="none" stroke="var(--accent)" stroke-width="1.4" opacity="0.45"/>
+          <circle cx="20" cy="20" r="13" fill="none" stroke="var(--accent)" stroke-width="1.4" opacity="0.75"/>
+          <path d="M9 27 L18 12 L23 20 L26.5 15 L31 27 Z" fill="var(--accent)"/>
+        </svg>
+        <span style="font-family:var(--font-display);font-size:21px">Your<span style="color:var(--accent-2)">Vivac</span></span>
+      </span>
+      <div class="mono" style="font-size:11px;color:var(--ink-3);margin-top:8px;letter-spacing:.04em">Guía de implementación · v1.0</div>
+    </div>
+
+    <div class="toc__group">Empezar</div>
+    <a href="#alcance">1 · Alcance de este documento</a>
+    <a href="#monorepo">2 · Estructura del monorepo</a>
+
+    <div class="toc__group">Sistema de diseño</div>
+    <a href="#color">3 · Color</a>
+    <a href="#tipografia">4 · Tipografía</a>
+    <a href="#espaciado">5 · Espaciado y densidad</a>
+    <a href="#forma">6 · Radios, sombras, iconos</a>
+    <a href="#tiendas">7 · Etiquetas de tienda</a>
+
+    <div class="toc__group">Componentes y pantallas</div>
+    <a href="#componentes">8 · Mapa de componentes</a>
+    <a href="#pantallas">9 · Inventario de pantallas</a>
+    <a href="#pines">10 · Tipos de pin</a>
+
+    <div class="toc__group">Entrega</div>
+    <a href="#theming">11 · Temas y plataformas</a>
+    <a href="#assets">12 · Assets pendientes</a>
+    <a href="#checklist">13 · Checklist de handoff</a>
+  </nav>
+
+  <!-- ============== MAIN ============== -->
+  <main class="main">
+
+    <header style="margin-bottom:18px">
+      <div class="eyebrow">YourVivac · Design Handoff</div>
+      <h1>Guía de implementación<br>de diseño</h1>
+      <p class="lead" style="margin-top:18px;max-width:680px">
+        Cómo traducir el diseño de YourVivac a código: tokens, componentes y pantallas.
+        Pensado como referencia única para el equipo que construirá la plataforma.
+      </p>
+    </header>
+
+    <!-- Aviso global -->
+    <div class="notice">
+      <div class="notice__icon">
+        <svg class="ic" viewBox="0 0 24 24"><path d="M12 9v4M12 16.5h.01"/><path d="M10.3 4.3 2.5 18a2 2 0 0 0 1.7 3h15.6a2 2 0 0 0 1.7-3L13.7 4.3a2 2 0 0 0-3.4 0Z"/></svg>
+      </div>
+      <div>
+        <h4>Importante · alcance</h4>
+        <p>
+          Este documento describe <strong>únicamente cómo implementar el diseño</strong> (UI, tokens y componentes
+          visuales). <strong>No</strong> contiene arquitectura de la aplicación, modelo de datos, lógica de negocio,
+          autenticación, APIs ni decisiones de desarrollo: <strong>todo eso se definirá después</strong>. Lo único
+          fijado a nivel técnico es que el proyecto será un <strong>monorepo con Turborepo</strong> que usa
+          <strong>React</strong> (web) y <strong>React Native</strong> (móvil), con <strong>Tailwind</strong> siempre
+          que sea posible.
+        </p>
+      </div>
+    </div>
+
+    <!-- ============== 1 · ALCANCE ============== -->
+    <section id="alcance">
+      <div class="eyebrow">01</div>
+      <h2>Alcance de este documento</h2>
+      <p>El objetivo es que cualquier persona pueda mirar el diseño y saber exactamente qué construir a nivel de
+        interfaz, con qué tokens y qué componentes, sin ambigüedad visual.</p>
+
+      <div class="grid g2" style="margin-top:18px">
+        <div class="card">
+          <div class="pill pill--accent" style="margin-bottom:12px">✓ Sí cubre</div>
+          <ul style="margin:0">
+            <li>Tokens de diseño: color, tipografía, espaciado, radios, sombras.</li>
+            <li>Inventario de componentes de UI y su equivalencia web / móvil.</li>
+            <li>Inventario de pantallas y estados.</li>
+            <li>Tipos de pin del tablero y sus variantes.</li>
+            <li>Temas claro / oscuro y niveles de densidad.</li>
+            <li>Dónde vive el diseño dentro del monorepo.</li>
+          </ul>
+        </div>
+        <div class="card">
+          <div class="pill pill--terra" style="margin-bottom:12px">✕ No cubre (se hará después)</div>
+          <ul style="margin:0">
+            <li>Arquitectura de backend, base de datos o APIs.</li>
+            <li>Lógica de negocio, estados de servidor, validaciones.</li>
+            <li>Autenticación real (Google OAuth) y permisos.</li>
+            <li>El “scrapper” de tiendas y su integración.</li>
+            <li>Routing, gestión de estado o librerías concretas.</li>
+            <li>CI/CD, testing, despliegue.</li>
+          </ul>
+        </div>
+      </div>
+
+      <h3>Entregables de diseño</h3>
+      <table>
+        <thead><tr><th>Archivo</th><th>Qué es</th></tr></thead>
+        <tbody>
+          <tr><td class="mono">YourVivac.html</td><td>Lienzo navegable con todas las pantallas (móvil + escritorio), temas y tweaks. Es la <strong>fuente visual de verdad</strong>.</td></tr>
+          <tr><td class="mono">yourvivac.css</td><td>Hoja con todos los <strong>tokens</strong> (variables CSS) y utilidades base. Punto de partida del preset de Tailwind.</td></tr>
+          <tr><td class="mono">Esta guía</td><td>Documento de referencia para implementar el diseño.</td></tr>
+        </tbody>
+      </table>
+    </section>
+
+    <!-- ============== 2 · MONOREPO ============== -->
+    <section id="monorepo">
+      <div class="eyebrow">02</div>
+      <h2>Estructura del monorepo</h2>
+      <p>Lo único fijado técnicamente. Se muestra <strong>solo para situar dónde vive el diseño</strong> — la
+        organización interna de cada app se decidirá en la fase de desarrollo.</p>
+
+      <div class="notice notice--accent">
+        <div class="notice__icon">
+          <svg class="ic" viewBox="0 0 24 24"><path d="M12 4 3 9l9 5 9-5zM3 14l9 5 9-5"/></svg>
+        </div>
+        <div>
+          <h4>Stack fijado</h4>
+          <p><strong>Turborepo</strong> · <strong>React</strong> (web) · <strong>React Native</strong> (móvil) ·
+          <strong>Tailwind</strong> en web y <strong>NativeWind</strong> (Tailwind para RN) en móvil. Nada más está decidido todavía.</p>
+        </div>
+      </div>
+
+      <pre><code><span class="c"># Solo ilustra dónde se ubican los artefactos de diseño.</span>
+<span class="c"># La estructura definitiva se concretará al empezar a construir.</span>
+yourvivac/
+├─ apps/
+│  ├─ web/                <span class="c"># React — consume tokens + UI web (Tailwind)</span>
+│  └─ mobile/             <span class="c"># React Native — mismos tokens (NativeWind)</span>
+├─ packages/
+│  ├─ <span class="k">design-tokens/</span>      <span class="c"># Fuente única: color, tipografía, espaciado…</span>
+│  ├─ <span class="k">tailwind-preset/</span>     <span class="c"># Preset de Tailwind generado desde los tokens</span>
+│  ├─ ui-web/             <span class="c"># Componentes React (web)</span>
+│  └─ ui-native/          <span class="c"># Componentes React Native</span>
+├─ turbo.json
+└─ package.json</code></pre>
+
+      <h3>Principio: una sola fuente de tokens</h3>
+      <p>Los valores de <code>yourvivac.css</code> se trasladan a <code>packages/design-tokens</code> como objeto
+        compartido y, desde ahí, se genera el <strong>preset de Tailwind</strong>. Web usa Tailwind y móvil usa
+        NativeWind, pero <strong>ambos leen los mismos tokens</strong>: así un cambio de marca se hace en un único sitio.</p>
+    </section>
+
+    <!-- ============== 3 · COLOR ============== -->
+    <section id="color">
+      <div class="eyebrow">03 · Tokens</div>
+      <h2>Color</h2>
+      <p>Paleta “bosque nocturno” con acento verde salvia y terracota para el rol de guía y los destacados.
+        Cada token existe en <strong>tema oscuro (principal)</strong> y <strong>claro</strong>. Nombres tal cual aparecen como variables CSS.</p>
+
+      <h3>Tema oscuro (por defecto)</h3>
+      <div class="swatches">
+        <div class="sw"><div class="sw__chip" style="background:#0e1411"></div><div class="sw__meta"><div class="sw__name">bg</div><div class="sw__val">#0e1411</div></div></div>
+        <div class="sw"><div class="sw__chip" style="background:#141d17"></div><div class="sw__meta"><div class="sw__name">bg-2</div><div class="sw__val">#141d17</div></div></div>
+        <div class="sw"><div class="sw__chip" style="background:#1c271f"></div><div class="sw__meta"><div class="sw__name">bg-3</div><div class="sw__val">#1c271f</div></div></div>
+        <div class="sw"><div class="sw__chip" style="background:#243029"></div><div class="sw__meta"><div class="sw__name">bg-4</div><div class="sw__val">#243029</div></div></div>
+        <div class="sw"><div class="sw__chip" style="background:#e9ece3"></div><div class="sw__meta"><div class="sw__name">ink</div><div class="sw__val">#e9ece3</div></div></div>
+        <div class="sw"><div class="sw__chip" style="background:#a9b4a6"></div><div class="sw__meta"><div class="sw__name">ink-2</div><div class="sw__val">#a9b4a6</div></div></div>
+        <div class="sw"><div class="sw__chip" style="background:#76836f"></div><div class="sw__meta"><div class="sw__name">ink-3</div><div class="sw__val">#76836f</div></div></div>
+        <div class="sw"><div class="sw__chip" style="background:#a8d77c"></div><div class="sw__meta"><div class="sw__name">accent</div><div class="sw__val">#a8d77c</div></div></div>
+        <div class="sw"><div class="sw__chip" style="background:#86b75f"></div><div class="sw__meta"><div class="sw__name">accent-2</div><div class="sw__val">#86b75f</div></div></div>
+        <div class="sw"><div class="sw__chip" style="background:#d68a57"></div><div class="sw__meta"><div class="sw__name">terra</div><div class="sw__val">#d68a57</div></div></div>
+        <div class="sw"><div class="sw__chip" style="background:#79b8c4"></div><div class="sw__meta"><div class="sw__name">sky</div><div class="sw__val">#79b8c4</div></div></div>
+        <div class="sw"><div class="sw__chip" style="background:#e7ddc6"></div><div class="sw__meta"><div class="sw__name">paper</div><div class="sw__val">#e7ddc6</div></div></div>
+      </div>
+
+      <h3>Tema claro</h3>
+      <div class="swatches">
+        <div class="sw"><div class="sw__chip" style="background:#ece5d6"></div><div class="sw__meta"><div class="sw__name">bg</div><div class="sw__val">#ece5d6</div></div></div>
+        <div class="sw"><div class="sw__chip" style="background:#f4eee2"></div><div class="sw__meta"><div class="sw__name">bg-2</div><div class="sw__val">#f4eee2</div></div></div>
+        <div class="sw"><div class="sw__chip" style="background:#fbf7ee"></div><div class="sw__meta"><div class="sw__name">bg-3</div><div class="sw__val">#fbf7ee</div></div></div>
+        <div class="sw"><div class="sw__chip" style="background:#1d241d"></div><div class="sw__meta"><div class="sw__name">ink</div><div class="sw__val">#1d241d</div></div></div>
+        <div class="sw"><div class="sw__chip" style="background:#3f7a4d"></div><div class="sw__meta"><div class="sw__name">accent</div><div class="sw__val">#3f7a4d</div></div></div>
+        <div class="sw"><div class="sw__chip" style="background:#b96e3c"></div><div class="sw__meta"><div class="sw__name">terra</div><div class="sw__val">#b96e3c</div></div></div>
+        <div class="sw"><div class="sw__chip" style="background:#3d7d8c"></div><div class="sw__meta"><div class="sw__name">sky</div><div class="sw__val">#3d7d8c</div></div></div>
+        <div class="sw"><div class="sw__chip" style="background:#f2ead4"></div><div class="sw__meta"><div class="sw__name">paper</div><div class="sw__val">#f2ead4</div></div></div>
+      </div>
+
+      <h4>Roles semánticos</h4>
+      <table>
+        <thead><tr><th>Token</th><th>Uso</th></tr></thead>
+        <tbody>
+          <tr><td class="mono">accent</td><td>Acción primaria, estado activo, marca, métricas de “vivac”.</td></tr>
+          <tr><td class="mono">terra</td><td>Rol de guía certificado, destacados, avisos, badges.</td></tr>
+          <tr><td class="mono">sky</td><td>Mapas, rutas, enlaces y elementos de ubicación.</td></tr>
+          <tr><td class="mono">paper</td><td>Fondo de las notas de papel pineadas en el tablero.</td></tr>
+          <tr><td class="mono">bg → bg-4</td><td>Superficies por elevación (fondo → tarjeta → control).</td></tr>
+          <tr><td class="mono">ink → ink-3</td><td>Texto por jerarquía (principal → secundario → débil).</td></tr>
+        </tbody>
+      </table>
+    </section>
+
+    <!-- ============== 4 · TIPOGRAFÍA ============== -->
+    <section id="tipografia">
+      <div class="eyebrow">04 · Tokens</div>
+      <h2>Tipografía</h2>
+      <p>Serif editorial con carácter para títulos, serif de lectura para cuerpo y monoespaciada para datos
+        técnicos (altitud, distancia, coordenadas, tiendas). Tres parejas conmutables vía tweak.</p>
+
+      <div class="card">
+        <div class="spec">
+          <div class="spec__label">Display · Young Serif — títulos, nombres de salida, cifras grandes</div>
+          <div style="font-family:var(--font-display);font-size:40px;line-height:1.05;margin-top:8px">Vivac en el Aneto</div>
+        </div>
+        <div class="spec">
+          <div class="spec__label">Body · Newsreader — texto corrido, descripciones, markdown</div>
+          <div style="font-family:var(--font-body);font-size:19px;margin-top:8px">Crea la excursión, invita a tu gente y montad juntos el tablero.</div>
+        </div>
+        <div class="spec">
+          <div class="spec__label">Mono · Spline Sans Mono — datos, etiquetas, coordenadas</div>
+          <div class="mono" style="font-size:18px;margin-top:8px">3.404 m · 24 km · 42.6318, 0.6577</div>
+        </div>
+      </div>
+
+      <h3>Variables y parejas</h3>
+      <table>
+        <thead><tr><th>Variable</th><th>Pareja A (def.)</th><th>Pareja B</th><th>Pareja C</th></tr></thead>
+        <tbody>
+          <tr><td class="mono">--font-display</td><td>Young Serif</td><td>Newsreader</td><td>DM Serif Display</td></tr>
+          <tr><td class="mono">--font-body</td><td>Newsreader</td><td>Newsreader</td><td>Newsreader</td></tr>
+          <tr><td class="mono">--font-mono</td><td colspan="3">Spline Sans Mono (constante)</td></tr>
+        </tbody>
+      </table>
+      <p><small>La pareja se cambia con <code>data-type="a|b|c"</code> en el contenedor raíz. En Tailwind se exponen como
+        <code>font-display</code>, <code>font-body</code> y <code>font-mono</code>.</small></p>
+
+      <h3>Escala recomendada</h3>
+      <table>
+        <thead><tr><th>Rol</th><th class="mono">Móvil</th><th class="mono">Escritorio</th><th>Familia</th></tr></thead>
+        <tbody>
+          <tr><td>Título de pantalla (H1)</td><td class="mono">25–27</td><td class="mono">25</td><td>display</td></tr>
+          <tr><td>Título de tarjeta (H3)</td><td class="mono">17–21</td><td class="mono">18–22</td><td>display</td></tr>
+          <tr><td>Cuerpo</td><td class="mono">14.5–16.5</td><td class="mono">15–16.5</td><td>body</td></tr>
+          <tr><td>Eyebrow / etiqueta</td><td class="mono">11–12</td><td class="mono">11–12</td><td>mono · uppercase · .16em</td></tr>
+          <tr><td>Dato técnico</td><td class="mono">10–16</td><td class="mono">10–30</td><td>mono · tabular-nums</td></tr>
+        </tbody>
+      </table>
+    </section>
+
+    <!-- ============== 5 · ESPACIADO ============== -->
+    <section id="espaciado">
+      <div class="eyebrow">05 · Tokens</div>
+      <h2>Espaciado y densidad</h2>
+      <p>El espaciado escala con un único multiplicador <code>--d</code>, controlado por el tweak de densidad.
+        En implementación equivale a un factor global o a tres mapas de spacing en Tailwind.</p>
+      <table>
+        <thead><tr><th>Densidad</th><th class="mono">--d</th><th>Uso</th></tr></thead>
+        <tbody>
+          <tr><td>Compacto</td><td class="mono">0.82</td><td>Listas densas, usuarios avanzados, escritorio con mucha info.</td></tr>
+          <tr><td>Regular <span class="pill pill--accent" style="margin-left:6px">def.</span></td><td class="mono">1.0</td><td>Valor por defecto en todas las plataformas.</td></tr>
+          <tr><td>Cómodo</td><td class="mono">1.18</td><td>Más aire, mejor accesibilidad táctil.</td></tr>
+        </tbody>
+      </table>
+      <h4>Reglas base</h4>
+      <ul>
+        <li>Padding de pantalla móvil: <code>18px</code> lateral.</li>
+        <li>Gap entre tarjetas: <code>12–16px</code>.</li>
+        <li>Hit target mínimo táctil: <strong>44×44px</strong>.</li>
+        <li>Layout siempre con <strong>flex / grid + gap</strong>, nunca márgenes sueltos entre hermanos.</li>
+      </ul>
+    </section>
+
+    <!-- ============== 6 · FORMA ============== -->
+    <section id="forma">
+      <div class="eyebrow">06 · Tokens</div>
+      <h2>Radios, sombras e iconografía</h2>
+      <div class="grid g2">
+        <div class="card">
+          <h4 style="margin-top:0">Radios</h4>
+          <table style="margin:0">
+            <tbody>
+              <tr><td>Tarjeta</td><td class="mono">18px</td></tr>
+              <tr><td>Input / control</td><td class="mono">12px</td></tr>
+              <tr><td>Pin del tablero</td><td class="mono">10px</td></tr>
+              <tr><td>Botón / chip</td><td class="mono">999px</td></tr>
+              <tr><td>Botón cuadrado (FAB, icon)</td><td class="mono">12–16px</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="card">
+          <h4 style="margin-top:0">Sombras</h4>
+          <table style="margin:0">
+            <tbody>
+              <tr><td class="mono">--shadow</td><td>Pines, hojas modales, elementos elevados.</td></tr>
+              <tr><td class="mono">--shadow-sm</td><td>Tarjetas flotantes, controles sobre mapa.</td></tr>
+              <tr><td>Bordes</td><td class="mono">--line / --line-2</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+      <h3>Iconografía</h3>
+      <p>Set lineal propio, trazo <code>1.6</code>, <code>stroke-linecap/join: round</code>, sin relleno (salvo el
+        pin de mapa). Tamaños <code>18 / 22 / 26px</code>. ~50 iconos definidos en el kit
+        (<code>home, compass, pin, list, note, link, image, route, shield, trophy…</code>). En implementación se
+        sustituyen por un set equivalente (p. ej. Lucide) manteniendo grosor y estilo.</p>
+    </section>
+
+    <!-- ============== 7 · TIENDAS ============== -->
+    <section id="tiendas">
+      <div class="eyebrow">07 · Tokens</div>
+      <h2>Etiquetas de tienda</h2>
+      <p>Cada producto de una lista de equipo puede enlazar a una tienda. La etiqueta usa un color identificativo
+        por comercio (texto monoespaciado + borde sutil). Los logos reales se añadirán como assets.</p>
+      <div class="pillrow">
+        <span class="store" style="color:#ff9900">Amazon</span>
+        <span class="store" style="color:#3779c2">Decathlon</span>
+        <span class="store" style="color:#e2483a">Deporvillage</span>
+        <span class="store" style="color:#d8b24a">Barrabés</span>
+        <span class="store" style="color:#6aa1d8">Forum Sport</span>
+        <span class="store" style="color:#d35b4a">Coleman</span>
+      </div>
+      <p><small>El conjunto es <strong>ampliable</strong>: el buscador unificado de tiendas está diseñado para crecer
+        a medida que se incorporen más comercios. La integración real (scrapper) queda fuera de esta guía.</small></p>
+    </section>
+
+    <!-- ============== 8 · COMPONENTES ============== -->
+    <section id="componentes">
+      <div class="eyebrow">08 · Componentes</div>
+      <h2>Mapa de componentes</h2>
+      <p>Inventario de la UI con su equivalencia entre web (React + Tailwind) y móvil (React Native + NativeWind).
+        Los componentes viven en <code>packages/ui-web</code> y <code>packages/ui-native</code> compartiendo tokens.</p>
+      <table>
+        <thead><tr><th>Componente</th><th>Descripción</th><th>Web</th><th>Móvil (RN)</th></tr></thead>
+        <tbody>
+          <tr><td>Logo / Mark</td><td>Pico + anillos de nivel · wordmark</td><td><code>&lt;svg&gt;</code></td><td><code>react-native-svg</code></td></tr>
+          <tr><td>Button</td><td>primary · ghost · terra · block · lg</td><td><code>&lt;button&gt;</code></td><td><code>Pressable</code></td></tr>
+          <tr><td>Chip / Pill</td><td>neutro · accent · terra · guía</td><td><code>&lt;span&gt;</code></td><td><code>View+Text</code></td></tr>
+          <tr><td>Card</td><td>superficie con borde interior</td><td><code>&lt;div&gt;</code></td><td><code>View</code></td></tr>
+          <tr><td>Avatar</td><td>iniciales · tonos · ring</td><td><code>&lt;div&gt;</code></td><td><code>View+Text</code></td></tr>
+          <tr><td>Icon</td><td>set lineal, 3 tamaños</td><td>SVG / Lucide</td><td><code>react-native-svg</code></td></tr>
+          <tr><td>AppBar / TabBar</td><td>cabecera + navegación inferior</td><td><code>&lt;nav&gt;</code></td><td><code>SafeArea</code> + tabs</td></tr>
+          <tr><td>Field / Input</td><td>campo etiquetado</td><td><code>&lt;input&gt;</code></td><td><code>TextInput</code></td></tr>
+          <tr><td>Toggle</td><td>interruptor on/off</td><td><code>&lt;button&gt;</code></td><td><code>Switch</code> estilado</td></tr>
+          <tr><td>TripCard</td><td>tarjeta de salida (carrusel/grid)</td><td colspan="2">compartido (tokens + layout)</td></tr>
+          <tr><td>FeedCard</td><td>actividad de un usuario</td><td colspan="2">compartido</td></tr>
+          <tr><td>TipCard</td><td>tarjeta de consejo</td><td colspan="2">compartido</td></tr>
+          <tr><td>Pin (Note/Photo/Link/List/Map/Text)</td><td>elementos del tablero</td><td colspan="2">ver §10</td></tr>
+          <tr><td>GearRow + Store tag</td><td>fila de equipo con tienda</td><td colspan="2">compartido</td></tr>
+          <tr><td>Stat</td><td>cifra + etiqueta (contadores)</td><td colspan="2">compartido</td></tr>
+          <tr><td>Modal / Bottom-sheet</td><td>hoja inferior sobre fondo atenuado</td><td><code>dialog</code>/portal</td><td><code>Modal</code> + gesto</td></tr>
+        </tbody>
+      </table>
+      <div class="notice notice--accent" style="margin-top:18px">
+        <div class="notice__icon"><svg class="ic" viewBox="0 0 24 24"><path d="M5 12.5 10 17 19 7"/></svg></div>
+        <div><h4>Markdown</h4><p>Las notas de texto del tablero y los consejos se escriben en <strong>Markdown</strong>.
+          El diseño define los estilos de render (<code>.note-md</code>): H4, párrafo, listas, <code>code</code> y enlaces.
+          La librería de parseo se elige en desarrollo.</p></div>
+      </div>
+    </section>
+
+    <!-- ============== 9 · PANTALLAS ============== -->
+    <section id="pantallas">
+      <div class="eyebrow">09 · Pantallas</div>
+      <h2>Inventario de pantallas</h2>
+      <p>Todas existen en el lienzo <code>YourVivac.html</code>. Móvil es la referencia principal; escritorio es la
+        adaptación. Cada una indica su <span class="mono">id</span> de artboard.</p>
+
+      <h3>Acceso</h3>
+      <div class="screenmap">
+        <div class="sm"><div class="sm__n">login-dark / -light</div><div class="sm__t">Login</div><div class="sm__d">Auth Google · oscuro y claro</div></div>
+      </div>
+
+      <h3>Núcleo</h3>
+      <div class="screenmap">
+        <div class="sm"><div class="sm__n">home-m / home-d</div><div class="sm__t">Inicio</div><div class="sm__d">Feed, salidas, ranking</div></div>
+        <div class="sm"><div class="sm__n">crear-m</div><div class="sm__t">Crear salida</div><div class="sm__d">Detalles + invitar</div></div>
+        <div class="sm"><div class="sm__n">board-free/wall/guided</div><div class="sm__t">Tablero</div><div class="sm__d">3 variantes + escritorio</div></div>
+        <div class="sm"><div class="sm__n">pin-chat</div><div class="sm__t">Chat del grupo</div><div class="sm__d">Mensajes + pin compartido</div></div>
+        <div class="sm"><div class="sm__n">perfil-user / -guide</div><div class="sm__t">Perfil</div><div class="sm__d">Contadores + rol guía</div></div>
+      </div>
+
+      <h3>Descubrir</h3>
+      <div class="screenmap">
+        <div class="sm"><div class="sm__n">explorar</div><div class="sm__t">Explorar</div><div class="sm__d">Salidas y consejos públicos</div></div>
+        <div class="sm"><div class="sm__n">equipo</div><div class="sm__t">Mi equipo</div><div class="sm__d">Biblioteca de listas</div></div>
+        <div class="sm"><div class="sm__n">consejos</div><div class="sm__t">Consejos</div><div class="sm__d">Feed de artículos</div></div>
+        <div class="sm"><div class="sm__n">publicar</div><div class="sm__t">Publicar consejo</div><div class="sm__d">Modal · editor Markdown</div></div>
+      </div>
+
+      <h3>Cuenta y administración</h3>
+      <div class="screenmap">
+        <div class="sm"><div class="sm__n">ajustes</div><div class="sm__t">Ajustes</div><div class="sm__d">Cuenta, preferencias, rol guía</div></div>
+        <div class="sm"><div class="sm__n">admin</div><div class="sm__t">Panel admin</div><div class="sm__d">KPIs, verificar guías, reportes</div></div>
+      </div>
+    </section>
+
+    <!-- ============== 10 · PINES ============== -->
+    <section id="pines">
+      <div class="eyebrow">10 · Tablero</div>
+      <h2>Tipos de pin</h2>
+      <p>El tablero es el corazón de YourVivac: un mural colaborativo donde cada miembro añade pines. El diseño
+        contempla seis tipos, cada uno con su “chincheta” de color y cabecera (autor + tipo).</p>
+      <table>
+        <thead><tr><th>Pin</th><th>Chincheta</th><th>Contenido</th></tr></thead>
+        <tbody>
+          <tr><td><strong>Nota</strong></td><td class="mono">terra</td><td>Texto en <strong>Markdown</strong> sobre fondo de papel.</td></tr>
+          <tr><td><strong>Foto</strong></td><td class="mono">sky</td><td>Imagen + autor y fecha.</td></tr>
+          <tr><td><strong>Enlace</strong></td><td class="mono">terra</td><td>Previsualización de URL (título + dominio).</td></tr>
+          <tr><td><strong>Lista</strong></td><td class="mono">accent</td><td>Lista de equipo con productos enlazados a tiendas. Cualquiera añade la suya.</td></tr>
+          <tr><td><strong>Mapa</strong></td><td class="mono">sky</td><td>Ubicación de Google Maps con coordenadas y ruta.</td></tr>
+          <tr><td><strong>Texto</strong></td><td class="mono">terra</td><td>Nota rápida de color (avisos, coche compartido…).</td></tr>
+        </tbody>
+      </table>
+      <h3>Variantes de presentación del tablero</h3>
+      <p>El mismo contenido admite tres disposiciones (tweak <code>board</code>):</p>
+      <ul>
+        <li><strong>Mural corcho libre</strong> — pines colocables con rotación natural (referencia principal en móvil).</li>
+        <li><strong>Muro ordenado</strong> — masonry tipo tablón, ideal para densidad y escritorio.</li>
+        <li><strong>Feed guiado</strong> — pines agrupados por tipo (Equipo, Fotos, Notas, Mapa), pensado para lectura rápida.</li>
+      </ul>
+    </section>
+
+    <!-- ============== 11 · THEMING ============== -->
+    <section id="theming">
+      <div class="eyebrow">11 · Entrega</div>
+      <h2>Temas y paridad entre plataformas</h2>
+      <h4>Conmutadores de raíz</h4>
+      <table>
+        <thead><tr><th>Atributo</th><th>Valores</th><th>Efecto</th></tr></thead>
+        <tbody>
+          <tr><td class="mono">data-theme</td><td>dark · light</td><td>Cambia toda la paleta de tokens.</td></tr>
+          <tr><td class="mono">data-type</td><td>a · b · c</td><td>Pareja tipográfica.</td></tr>
+          <tr><td class="mono">data-density</td><td>compact · regular · comfy</td><td>Factor <code>--d</code> de espaciado.</td></tr>
+          <tr><td class="mono">board</td><td>free · wall · guided</td><td>Disposición del tablero.</td></tr>
+        </tbody>
+      </table>
+      <div class="notice">
+        <div class="notice__icon"><svg class="ic" viewBox="0 0 24 24"><path d="M12 3 5 6v5c0 4.4 3 7.6 7 9 4-1.4 7-4.6 7-9V6z"/></svg></div>
+        <div><h4>Web vs. React Native</h4><p>RN no tiene cascada CSS. Los tokens se comparten como <strong>objeto
+          JS</strong> desde <code>design-tokens</code>; en web alimentan el <strong>preset de Tailwind</strong> y en móvil
+          <strong>NativeWind</strong>. El cambio de tema se hace por proveedor de tema, no por <code>data-*</code>.</p></div>
+      </div>
+    </section>
+
+    <!-- ============== 12 · ASSETS ============== -->
+    <section id="assets">
+      <div class="eyebrow">12 · Entrega</div>
+      <h2>Assets pendientes</h2>
+      <p>En el diseño, las imágenes son <strong>marcadores</strong> (placeholder rayado con etiqueta) para que se
+        sustituyan por material real. Listado de lo que falta aportar:</p>
+      <ul>
+        <li><strong>Fotografías</strong> de montaña / vivac (portadas de salida, feed, consejos, login).</li>
+        <li><strong>Logos de tienda</strong> reales (Amazon, Decathlon, Deporvillage, Barrabés, Forum, Coleman…).</li>
+        <li><strong>Mapas reales</strong> (el diseño usa una retícula simulada; integración cartográfica en desarrollo).</li>
+        <li><strong>Avatares</strong> de usuario (hoy iniciales sobre disco de color como fallback).</li>
+      </ul>
+      <p><small>Marcador en el código: clase <code>.imgslot</code> (con variante <code>.topo</code>). Cada uno lleva una
+        etiqueta describiendo qué imagen debe ir.</small></p>
+    </section>
+
+    <!-- ============== 13 · CHECKLIST ============== -->
+    <section id="checklist">
+      <div class="eyebrow">13 · Entrega</div>
+      <h2>Checklist de handoff de diseño</h2>
+      <div class="card">
+        <ul style="margin:0;list-style:none;padding:0">
+          <li>☐ Portar tokens de <code>yourvivac.css</code> a <code>packages/design-tokens</code>.</li>
+          <li>☐ Generar el <strong>preset de Tailwind</strong> desde los tokens (web) y configurar <strong>NativeWind</strong> (móvil).</li>
+          <li>☐ Cargar fuentes: Young Serif, Newsreader, DM Serif Display, Spline Sans Mono.</li>
+          <li>☐ Construir componentes base (Button, Card, Chip, Avatar, Icon, Field) en <code>ui-web</code> y <code>ui-native</code>.</li>
+          <li>☐ Implementar tema claro/oscuro mediante proveedor de tema compartido.</li>
+          <li>☐ Reemplazar marcadores <code>.imgslot</code> por imágenes reales.</li>
+          <li>☐ Sustituir el set de iconos por uno equivalente (mismo grosor y estilo).</li>
+          <li>☐ Validar densidad y hit targets (mín. 44px) en dispositivo real.</li>
+        </ul>
+      </div>
+
+      <div class="notice" style="margin-top:24px">
+        <div class="notice__icon"><svg class="ic" viewBox="0 0 24 24"><path d="M12 9v4M12 16.5h.01"/><path d="M10.3 4.3 2.5 18a2 2 0 0 0 1.7 3h15.6a2 2 0 0 0 1.7-3L13.7 4.3a2 2 0 0 0-3.4 0Z"/></svg></div>
+        <div><h4>Recordatorio final</h4><p>Este documento es <strong>solo la guía de implementación del diseño</strong>.
+          La arquitectura de la aplicación, el backend y toda la lógica se definirán en una fase posterior. Lo único
+          fijado es: <strong>monorepo Turborepo · React · React Native · Tailwind/NativeWind</strong>.</p></div>
+      </div>
+
+      <div class="foot">YourVivac · Guía de implementación de diseño · v1.0 · Documento de referencia visual</div>
+    </section>
+
+  </main>
+</div>
+</body>
+</html>

@@ -1,0 +1,862 @@
+<!doctype html>
+<html lang="es" data-theme="light">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>YourVivac · Guía de desarrollo</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Young+Serif&family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;0,6..72,600;1,6..72,400&family=DM+Serif+Display&family=Spline+Sans+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="yourvivac.css" />
+  <link rel="stylesheet" href="yourvivac-doc.css" />
+</head>
+<body>
+<div class="doc">
+
+  <!-- ============== TOC ============== -->
+  <nav class="toc">
+    <div class="toc__brand">
+      <span style="display:inline-flex;align-items:center;gap:10px">
+        <svg width="34" height="34" viewBox="0 0 40 40" aria-hidden="true">
+          <circle cx="20" cy="20" r="18.5" fill="none" stroke="var(--accent)" stroke-width="1.4" opacity="0.45"/>
+          <circle cx="20" cy="20" r="13" fill="none" stroke="var(--accent)" stroke-width="1.4" opacity="0.75"/>
+          <path d="M9 27 L18 12 L23 20 L26.5 15 L31 27 Z" fill="var(--accent)"/>
+        </svg>
+        <span style="font-family:var(--font-display);font-size:21px">Your<span style="color:var(--accent-2)">Vivac</span></span>
+      </span>
+      <div class="mono" style="font-size:11px;color:var(--ink-3);margin-top:8px;letter-spacing:.04em">Guía de desarrollo · v1.0</div>
+    </div>
+
+    <div class="toc__group">Visión general</div>
+    <a href="#alcance">1 · Cómo usar esta guía</a>
+    <a href="#stack">2 · Stack global</a>
+    <a href="#monorepo">3 · Monorepo Turborepo</a>
+    <a href="#packages">4 · Packages compartidos</a>
+
+    <div class="toc__group">Frontend</div>
+    <a href="#web">5 · App web (React + Vite)</a>
+    <a href="#convencion">6 · Convención de componentes</a>
+    <a href="#mobile">7 · App móvil (React Native)</a>
+    <a href="#librerias">8 · Librerías por funcionalidad</a>
+
+    <div class="toc__group">Backend</div>
+    <a href="#api">9 · API (Express + Mongoose)</a>
+    <a href="#seguridad">10 · Seguridad y middlewares</a>
+    <a href="#modelo">11 · Modelo de datos MongoDB</a>
+    <a href="#endpoints">12 · Endpoints de la API</a>
+    <a href="#workers">13 · Workers y colas</a>
+
+    <div class="toc__group">Servicios e infra</div>
+    <a href="#microservicio">14 · Microservicio de tiendas</a>
+    <a href="#infra">15 · Infraestructura (Railway)</a>
+    <a href="#env">16 · Variables de entorno</a>
+    <a href="#checklist">17 · Checklist de desarrollo</a>
+  </nav>
+
+  <!-- ============== MAIN ============== -->
+  <main class="main">
+
+    <header style="margin-bottom:18px">
+      <div class="eyebrow">YourVivac · Engineering Handoff</div>
+      <h1>Guía de<br>desarrollo</h1>
+      <p class="lead" style="margin-top:18px;max-width:700px">
+        El plano técnico de YourVivac: stack, estructura del monorepo, librerías, modelo de datos,
+        endpoints e infraestructura. Pensada para que un equipo (o un agente) la lea y empiece a implementar.
+      </p>
+    </header>
+
+    <div class="notice notice--accent">
+      <div class="notice__icon">
+        <svg class="ic" viewBox="0 0 24 24"><path d="M4 5h16v14H4zM4 5l8 6 8-6"/></svg>
+      </div>
+      <div>
+        <h4>Documento hermano</h4>
+        <p>Esta guía cubre el <strong>desarrollo</strong>. El diseño visual (tokens, componentes, pantallas) vive en la
+        <strong>Guía de implementación de diseño</strong>. Ambas se complementan: aquí se referencia el diseño, no se repite.</p>
+      </div>
+    </div>
+
+    <!-- ============== 1 · ALCANCE ============== -->
+    <section id="alcance">
+      <div class="eyebrow">01</div>
+      <h2>Cómo usar esta guía</h2>
+      <p>Define el <strong>stack al 100%</strong>, la organización del código y los contratos (modelo de datos +
+        endpoints) necesarios para construir YourVivac de principio a fin. Está pensada para ser accionable:
+        cada sección dice <em>qué</em> usar y <em>dónde</em> vive.</p>
+      <div class="grid g2" style="margin-top:16px">
+        <div class="card">
+          <div class="pill pill--accent" style="margin-bottom:12px">✓ Decisiones cerradas</div>
+          <ul style="margin:0">
+            <li>Monorepo <strong>Turborepo</strong> + pnpm workspaces.</li>
+            <li><strong>TypeScript</strong> en todo el proyecto, sin excepción.</li>
+            <li>Stack de frontend, backend e infraestructura (sección 2).</li>
+            <li>Modelo de datos MongoDB y endpoints (secciones 11–12).</li>
+          </ul>
+        </div>
+        <div class="card">
+          <div class="pill pill--terra" style="margin-bottom:12px">○ A concretar en implementación</div>
+          <ul style="margin:0">
+            <li>Nombres exactos de carpetas/archivos internos.</li>
+            <li>Lógica de negocio detallada de cada servicio.</li>
+            <li>Tests, CI/CD y observabilidad fina.</li>
+            <li>Selectores de scraping concretos por tienda.</li>
+          </ul>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============== 2 · STACK ============== -->
+    <section id="stack">
+      <div class="eyebrow">02</div>
+      <h2>Stack global</h2>
+      <table>
+        <thead><tr><th>Capa</th><th>Tecnologías</th></tr></thead>
+        <tbody>
+          <tr><td><strong>Monorepo</strong></td><td class="mono">Turborepo · pnpm workspaces · TypeScript</td></tr>
+          <tr><td><strong>Web</strong></td><td class="mono">React · Vite · Zustand · React Router · Tailwind + DaisyUI · Axios</td></tr>
+          <tr><td><strong>Móvil</strong></td><td class="mono">React Native (Expo) · NativeWind · Zustand · React Navigation · Axios</td></tr>
+          <tr><td><strong>API</strong></td><td class="mono">Node · Express · Mongoose · MongoDB · JWT · Zod</td></tr>
+          <tr><td><strong>Realtime</strong></td><td class="mono">Socket.IO (chat de grupo + colaboración del tablero)</td></tr>
+          <tr><td><strong>Workers / colas</strong></td><td class="mono">BullMQ + Redis (imágenes, emails, notificaciones, analíticas)</td></tr>
+          <tr><td><strong>Auth</strong></td><td class="mono">Firebase (OAuth Google) · bcrypt · JWT access/refresh</td></tr>
+          <tr><td><strong>Imágenes</strong></td><td class="mono">Sharp (optimización) · Cloudinary (almacenar/servir) · moderación en worker</td></tr>
+          <tr><td><strong>Email</strong></td><td class="mono">Nodemailer + Brevo (transport)</td></tr>
+          <tr><td><strong>Logs</strong></td><td class="mono">Pino (+ pino-http, pino-pretty en dev)</td></tr>
+          <tr><td><strong>Microservicio</strong></td><td class="mono">Express + TS · Redis (cache) · scraping/APIs de tiendas · <em>repo aparte</em></td></tr>
+          <tr><td><strong>Infra</strong></td><td class="mono">Railway (Mongo, API, workers, Redis, microservicio) · Cloudinary · Brevo · Firebase</td></tr>
+        </tbody>
+      </table>
+    </section>
+
+    <!-- ============== 3 · MONOREPO ============== -->
+    <section id="monorepo">
+      <div class="eyebrow">03</div>
+      <h2>Monorepo con Turborepo</h2>
+      <p>Un único repositorio con <strong>Turborepo</strong> y <strong>pnpm workspaces</strong>. El microservicio de
+        tiendas es la <strong>única excepción</strong>: vive en su propio repo (ver sección 14).</p>
+      <pre><code><span class="c"># Estructura orientativa — los nombres finales se ajustan en implementación</span>
+yourvivac/
+├─ apps/
+│  ├─ <span class="k">web/</span>            <span class="c"># React + Vite (DaisyUI)</span>
+│  ├─ <span class="k">mobile/</span>         <span class="c"># React Native + NativeWind</span>
+│  └─ <span class="k">api/</span>            <span class="c"># Express + Mongoose + workers</span>
+├─ packages/
+│  ├─ <span class="k">types/</span>          <span class="c"># Tipos TS compartidos (modelos, DTOs, enums)</span>
+│  ├─ <span class="k">validation/</span>     <span class="c"># Esquemas Zod (request + forms) compartidos</span>
+│  ├─ <span class="k">sdk/</span>            <span class="c"># Cliente Axios tipado de la API</span>
+│  └─ <span class="k">utils/</span>          <span class="c"># Helpers puros (fechas, formato, unidades)</span>
+├─ turbo.json
+├─ pnpm-workspace.yaml
+└─ package.json</code></pre>
+      <div class="notice">
+        <div class="notice__icon"><svg class="ic" viewBox="0 0 24 24"><path d="M12 3 5 6v5c0 4.4 3 7.6 7 9 4-1.4 7-4.6 7-9V6z"/></svg></div>
+        <div><h4>Regla de oro</h4><p>Tipos, validación y cliente de API se <strong>comparten</strong> vía packages. El frontend
+          (web y móvil) nunca define a mano la forma de una respuesta: la importa de <code>@yourvivac/types</code> y la
+          consume con <code>@yourvivac/sdk</code>.</p></div>
+      </div>
+    </section>
+
+    <!-- ============== 4 · PACKAGES ============== -->
+    <section id="packages">
+      <div class="eyebrow">04</div>
+      <h2>Packages compartidos</h2>
+      <table>
+        <thead><tr><th>Package</th><th>Responsabilidad</th><th>Lo consume</th></tr></thead>
+        <tbody>
+          <tr><td class="mono">@yourvivac/types</td><td>Interfaces y enums de todos los modelos y DTOs. Fuente única de la forma de los datos.</td><td>web · mobile · api · sdk</td></tr>
+          <tr><td class="mono">@yourvivac/validation</td><td>Esquemas <strong>Zod</strong> reutilizados en validación de requests (API) y formularios (react-hook-form).</td><td>web · mobile · api</td></tr>
+          <tr><td class="mono">@yourvivac/sdk</td><td>Cliente <strong>Axios</strong> tipado: interceptores de auth (access/refresh), funciones por endpoint.</td><td>web · mobile</td></tr>
+          <tr><td class="mono">@yourvivac/utils</td><td>Funciones puras sin estado: formato de números/fechas, conversión de unidades, slug, peso de mochila.</td><td>todos</td></tr>
+        </tbody>
+      </table>
+      <p><small>Los <strong>design tokens</strong> de la Guía de diseño (preset de Tailwind / NativeWind) se añaden como
+        packages adicionales (<code>design-tokens</code>, <code>tailwind-preset</code>) — ver esa guía.</small></p>
+    </section>
+
+    <!-- ============== 5 · WEB ============== -->
+    <section id="web">
+      <div class="eyebrow">05 · Frontend</div>
+      <h2>App web — React + Vite</h2>
+      <table>
+        <thead><tr><th>Pieza</th><th>Elección</th><th>Notas</th></tr></thead>
+        <tbody>
+          <tr><td>Build / dev</td><td class="mono">Vite</td><td>TS, HMR, build de producción.</td></tr>
+          <tr><td>UI / estilos</td><td class="mono">Tailwind + DaisyUI</td><td>CSS en el propio componente (ver §6). Temas claro/oscuro de DaisyUI mapeados a los tokens.</td></tr>
+          <tr><td>Estado cliente</td><td class="mono">Zustand</td><td>Stores por dominio (auth, ui, board, draft de salida).</td></tr>
+          <tr><td>Estado servidor</td><td class="mono">TanStack Query</td><td>Cache, revalidación y mutaciones sobre el SDK Axios.</td></tr>
+          <tr><td>Routing</td><td class="mono">React Router</td><td>Rutas protegidas por rol (user / guide / admin).</td></tr>
+          <tr><td>HTTP</td><td class="mono">Axios</td><td>Vía <code>@yourvivac/sdk</code>, con interceptor de refresh.</td></tr>
+          <tr><td>Formularios</td><td class="mono">react-hook-form + Zod</td><td>Esquemas de <code>@yourvivac/validation</code>.</td></tr>
+        </tbody>
+      </table>
+    </section>
+
+    <!-- ============== 6 · CONVENCIÓN ============== -->
+    <section id="convencion">
+      <div class="eyebrow">06 · Frontend</div>
+      <h2>Convención de componentes</h2>
+      <p>Todos los componentes siguen el mismo patrón: <strong>un objeto <code>styles</code> con clases de Tailwind</strong>
+        al principio del archivo y el JSX limpio debajo. TypeScript siempre, props tipadas, sin estilos sueltos repartidos.</p>
+      <pre><code><span class="c">// TripCard.tsx — mismo patrón que AnimeCard</span>
+<span class="k">import</span> { Mountain, Users, Heart } <span class="k">from</span> <span class="t">'lucide-react'</span>;
+<span class="k">import</span> { useNavigate } <span class="k">from</span> <span class="t">'react-router-dom'</span>;
+<span class="k">import type</span> { Trip } <span class="k">from</span> <span class="t">'@yourvivac/types'</span>;
+<span class="k">import</span> { formatCompactNumber } <span class="k">from</span> <span class="t">'@yourvivac/utils'</span>;
+
+<span class="k">interface</span> Props {
+  trip: Trip;
+  onOpen?: (id: string) =&gt; void;
+}
+
+<span class="k">const</span> styles = {
+  card:    <span class="t">'flex flex-col font-body cursor-pointer w-full min-w-0 group rounded-card'</span>,
+  cover:   <span class="t">'relative w-full aspect-[16/10] rounded-card overflow-hidden bg-bg-3'</span>,
+  badge:   <span class="t">'absolute top-2 left-2 badge badge-sm bg-black/55 text-white border-0'</span>,
+  title:   <span class="t">'mt-2 text-lg font-display text-ink leading-tight'</span>,
+  metaRow: <span class="t">'flex items-center gap-3 mt-1 text-xs text-ink-3 font-mono'</span>,
+};
+
+<span class="k">export default function</span> TripCard({ trip, onOpen }: Props) {
+  <span class="k">const</span> navigate = useNavigate();
+  <span class="k">return</span> (
+    &lt;div className={styles.card} onClick={() =&gt; onOpen?.(trip.id)}&gt;
+      &lt;div className={styles.cover}&gt;
+        {trip.cover &amp;&amp; &lt;img src={trip.cover.url} alt={trip.title} className=<span class="t">"w-full h-full object-cover"</span> /&gt;}
+        &lt;span className={styles.badge}&gt;{trip.status}&lt;/span&gt;
+      &lt;/div&gt;
+      &lt;p className={styles.title}&gt;{trip.title}&lt;/p&gt;
+      &lt;div className={styles.metaRow}&gt;
+        &lt;span className=<span class="t">"flex items-center gap-1"</span>&gt;&lt;Mountain size={14} /&gt;{trip.elevationGain} m&lt;/span&gt;
+        &lt;span className=<span class="t">"flex items-center gap-1"</span>&gt;&lt;Users size={14} /&gt;{trip.members.length}&lt;/span&gt;
+      &lt;/div&gt;
+    &lt;/div&gt;
+  );
+}</code></pre>
+      <div class="grid g3" style="margin-top:16px">
+        <div class="card"><h4 style="margin-top:0">Reglas</h4><ul style="margin:0;font-size:14px"><li>Objeto <code>styles</code> por componente.</li><li>Props con <code>interface Props</code>.</li><li>Iconos con <code>lucide-react</code>.</li></ul></div>
+        <div class="card"><h4 style="margin-top:0">Tokens</h4><ul style="margin:0;font-size:14px"><li>Clases de marca: <code>bg-bg-2</code>, <code>text-ink</code>, <code>text-accent</code>.</li><li>Radios: <code>rounded-card</code>.</li><li>Fuentes: <code>font-display/body/mono</code>.</li></ul></div>
+        <div class="card"><h4 style="margin-top:0">Móvil</h4><ul style="margin:0;font-size:14px"><li>Mismo patrón con <strong>NativeWind</strong>.</li><li><code>className</code> sobre <code>View/Text/Pressable</code>.</li></ul></div>
+      </div>
+    </section>
+
+    <!-- ============== 7 · MOBILE ============== -->
+    <section id="mobile">
+      <div class="eyebrow">07 · Frontend</div>
+      <h2>App móvil — React Native</h2>
+      <p>React Native (recomendado con <strong>Expo</strong> por velocidad de arranque y build). Comparte stores, tipos,
+        validación y SDK con la web; cambia la capa de UI por componentes nativos.</p>
+      <table>
+        <thead><tr><th>Pieza</th><th>Elección</th></tr></thead>
+        <tbody>
+          <tr><td>Estilos</td><td class="mono">NativeWind (Tailwind para RN, mismo preset de tokens)</td></tr>
+          <tr><td>Navegación</td><td class="mono">React Navigation (stack + bottom tabs)</td></tr>
+          <tr><td>Estado / datos</td><td class="mono">Zustand + TanStack Query + @yourvivac/sdk (compartidos)</td></tr>
+          <tr><td>Mapas</td><td class="mono">react-native-maps (Google Maps provider)</td></tr>
+          <tr><td>Gestos / DnD</td><td class="mono">react-native-gesture-handler + react-native-reanimated</td></tr>
+          <tr><td>Markdown</td><td class="mono">react-native-markdown-display</td></tr>
+          <tr><td>Auth Google</td><td class="mono">@react-native-firebase/auth (o expo-auth-session)</td></tr>
+        </tbody>
+      </table>
+    </section>
+
+    <!-- ============== 8 · LIBRERÍAS ============== -->
+    <section id="librerias">
+      <div class="eyebrow">08 · Frontend</div>
+      <h2>Librerías por funcionalidad</h2>
+      <p>Derivadas del análisis del diseño. Cada bloque indica la librería recomendada para web (RN entre paréntesis si difiere).</p>
+
+      <h3>Tablero colaborativo (drag &amp; drop de pines)</h3>
+      <div class="libs">
+        <div class="lib"><div class="lib__name">@dnd-kit/core · @dnd-kit/sortable</div><div class="lib__use">Arrastrar y colocar pines en el mural libre y reordenar en el muro. Accesible y moderno (sustituye a react-beautiful-dnd).</div></div>
+        <div class="lib"><div class="lib__name">react-rnd <span style="color:var(--ink-3)">(opcional)</span></div><div class="lib__use">Mover + redimensionar pines con rotación en el mural estilo corcho.</div></div>
+        <div class="lib"><div class="lib__name">RN: gesture-handler + reanimated</div><div class="lib__use">Equivalente nativo para arrastrar pines con gestos fluidos a 60fps.</div></div>
+        <div class="lib"><div class="lib__name">socket.io-client</div><div class="lib__use">Sincronización en tiempo real del tablero y el chat entre miembros.</div></div>
+      </div>
+
+      <h3>Mapas y ubicación (Google Maps)</h3>
+      <div class="libs">
+        <div class="lib"><div class="lib__name">@vis.gl/react-google-maps</div><div class="lib__use">Mapa, marcadores y rutas en el pin de mapa y la pantalla de ubicación (web).</div></div>
+        <div class="lib"><div class="lib__name">@googlemaps/js-api-loader</div><div class="lib__use">Carga del SDK + Places Autocomplete para el campo de lugar al crear salida.</div></div>
+        <div class="lib"><div class="lib__name">RN: react-native-maps</div><div class="lib__use">Mapa nativo con provider de Google.</div></div>
+        <div class="lib"><div class="lib__name">@tmcw/togeojson <span style="color:var(--ink-3)">(opcional)</span></div><div class="lib__use">Parsear/mostrar rutas GPX de salidas públicas.</div></div>
+      </div>
+
+      <h3>Markdown (notas y consejos)</h3>
+      <div class="libs">
+        <div class="lib"><div class="lib__name">react-markdown + remark-gfm</div><div class="lib__use">Render de notas del tablero y artículos de consejos.</div></div>
+        <div class="lib"><div class="lib__name">rehype-sanitize</div><div class="lib__use">Saneado obligatorio del HTML resultante (contenido de usuario).</div></div>
+        <div class="lib"><div class="lib__name">@uiw/react-md-editor</div><div class="lib__use">Editor con vista previa para el modal de publicar consejo.</div></div>
+        <div class="lib"><div class="lib__name">RN: react-native-markdown-display</div><div class="lib__use">Render de markdown en móvil.</div></div>
+      </div>
+
+      <h3>Panel de admin (gráficos y analíticas)</h3>
+      <div class="libs">
+        <div class="lib"><div class="lib__name">Recharts</div><div class="lib__use">KPIs, series temporales de altas, barras de actividad del panel admin.</div></div>
+        <div class="lib"><div class="lib__name">@tanstack/react-table</div><div class="lib__use">Tablas de usuarios, cola de verificación de guías y reportes (orden, filtro, paginación).</div></div>
+        <div class="lib"><div class="lib__name">date-fns</div><div class="lib__use">Rangos de fechas y formato en analíticas.</div></div>
+      </div>
+
+      <h3>Transversales</h3>
+      <div class="libs">
+        <div class="lib"><div class="lib__name">lucide-react</div><div class="lib__use">Set de iconos (mismo grosor que el diseño).</div></div>
+        <div class="lib"><div class="lib__name">sonner / react-hot-toast</div><div class="lib__use">Notificaciones toast.</div></div>
+        <div class="lib"><div class="lib__name">clsx + tailwind-merge</div><div class="lib__use">Composición segura de clases Tailwind.</div></div>
+        <div class="lib"><div class="lib__name">firebase (auth)</div><div class="lib__use">Flujo OAuth de Google en cliente; el backend verifica el token.</div></div>
+      </div>
+    </section>
+
+    <!-- ============== 9 · API ============== -->
+    <section id="api">
+      <div class="eyebrow">09 · Backend</div>
+      <h2>API — Express + Mongoose</h2>
+      <p>Servidor Node con <strong>Express</strong> y TypeScript. Persistencia en <strong>MongoDB</strong> vía
+        <strong>Mongoose</strong> (validadores de esquema + validación de request con Zod). Arquitectura por
+        <strong>middlewares</strong>, como es idiomático en Express.</p>
+      <table>
+        <thead><tr><th>Pieza</th><th>Librería</th><th>Uso</th></tr></thead>
+        <tbody>
+          <tr><td>Framework</td><td class="mono">express</td><td>Routing + middlewares.</td></tr>
+          <tr><td>ODM</td><td class="mono">mongoose</td><td>Esquemas, validadores, índices, populate, hooks.</td></tr>
+          <tr><td>Validación request</td><td class="mono">zod</td><td>Middleware que valida <code>body/params/query</code> con esquemas de <code>@yourvivac/validation</code>.</td></tr>
+          <tr><td>Auth OAuth</td><td class="mono">firebase-admin</td><td>Verifica el ID token de Google enviado por el cliente.</td></tr>
+          <tr><td>Hash</td><td class="mono">bcrypt</td><td>Contraseñas de usuarios con email.</td></tr>
+          <tr><td>Tokens</td><td class="mono">jsonwebtoken</td><td>Patrón access + refresh (ver §10).</td></tr>
+          <tr><td>Imágenes</td><td class="mono">sharp · cloudinary · multer</td><td>Optimizar (sharp) → subir a Cloudinary; multer parsea el upload.</td></tr>
+          <tr><td>Email</td><td class="mono">nodemailer + Brevo</td><td>Transaccionales (verificación, invitaciones, reset).</td></tr>
+          <tr><td>Realtime</td><td class="mono">socket.io</td><td>Chat de grupo y eventos del tablero.</td></tr>
+          <tr><td>Colas / cache</td><td class="mono">bullmq · ioredis</td><td>Workers y cache; Redis en Railway.</td></tr>
+          <tr><td>Logs</td><td class="mono">pino + pino-http</td><td>Estructurados en prod; <code>pino-pretty</code> en dev.</td></tr>
+        </tbody>
+      </table>
+    </section>
+
+    <!-- ============== 10 · SEGURIDAD ============== -->
+    <section id="seguridad">
+      <div class="eyebrow">10 · Backend</div>
+      <h2>Seguridad y middlewares</h2>
+      <h3>Cadena de middlewares (orden)</h3>
+      <div class="diag">helmet()            → cabeceras de seguridad
+cors({ origin })    → orígenes web/móvil permitidos
+compression()       → gzip de respuestas
+pino-http           → log de cada request
+cookieParser()      → refresh token en cookie httpOnly
+rateLimit           → express-rate-limit (store en Redis)
+express.json()      → body parsing
+validate(schema)    → Zod por ruta (body/params/query)
+authGuard           → verifica access JWT → req.user
+roleGuard('admin')  → autorización por rol
+&lt;controller&gt;        → lógica
+errorHandler        → captura y formatea errores</div>
+
+      <h3>Autenticación — access / refresh</h3>
+      <table>
+        <tbody>
+          <tr><td><strong>Access token</strong></td><td class="mono">JWT corto (~15 min)</td><td>En header <code>Authorization: Bearer</code>. Lleva <code>userId</code> y <code>role</code>.</td></tr>
+          <tr><td><strong>Refresh token</strong></td><td class="mono">JWT largo (~30 d)</td><td>En cookie <strong>httpOnly</strong> (web) / secure storage (móvil). Persistido y rotado en colección <code>sessions</code>.</td></tr>
+          <tr><td><strong>OAuth Google</strong></td><td class="mono">firebase-admin</td><td>Cliente obtiene ID token con Firebase → <code>POST /auth/google</code> → backend verifica y emite sus propios tokens.</td></tr>
+        </tbody>
+      </table>
+      <ul>
+        <li><strong>helmet</strong> para cabeceras; <strong>cors</strong> con allow-list de orígenes.</li>
+        <li><strong>Rate limiting</strong> global + estricto en <code>/auth/*</code> (store en Redis para escalar).</li>
+        <li>Contraseñas con <strong>bcrypt</strong> (coste ≥ 12); nunca se devuelven.</li>
+        <li>Autorización por <strong>rol</strong> (<code>user</code> · <code>guide</code> · <code>admin</code>) y por <strong>pertenencia</strong> (miembro de la salida).</li>
+        <li>Saneado de markdown y validación de subidas (tipo MIME + tamaño).</li>
+      </ul>
+    </section>
+
+    <!-- ============== 11 · MODELO DE DATOS ============== -->
+    <section id="modelo">
+      <div class="eyebrow">11 · Backend</div>
+      <h2>Modelo de datos MongoDB</h2>
+      <p>Diseñado para cubrir <strong>todas</strong> las funcionalidades sin tener que añadir campos sobre la marcha:
+        usuarios OAuth y de email, roles y guías, salidas, tablero y pines, listas de equipo, chat, consejos, social
+        (follows, likes, comentarios), notificaciones, reportes, sesiones, media y analíticas.</p>
+
+      <div class="notice notice--accent">
+        <div class="notice__icon"><svg class="ic" viewBox="0 0 24 24"><path d="M4 6h16M4 12h16M4 18h16"/></svg></div>
+        <div><h4>Convenciones</h4><p>Todos los documentos llevan <code>_id</code>, <code>createdAt</code>, <code>updatedAt</code>
+          (timestamps de Mongoose). Las relaciones usan <code>ObjectId</code> con <code>ref</code>. Se indican los
+          <strong>índices</strong> clave. Tipos resumidos; los enums viven en <code>@yourvivac/types</code>.</p></div>
+      </div>
+
+      <!-- users -->
+      <div class="schema">
+        <div class="schema__h"><span class="schema__name">users</span><span class="schema__tag">colección raíz</span></div>
+        <table><tbody>
+          <tr><td class="f">displayName</td><td class="ty">string</td><td>Nombre visible.</td></tr>
+          <tr><td class="f">username</td><td class="ty">string · unique</td><td>Handle público (<code>@marcosvidal</code>). Índice único.</td></tr>
+          <tr><td class="f">email</td><td class="ty">string · unique</td><td>Índice único. <code>emailVerified: boolean</code>.</td></tr>
+          <tr><td class="f">passwordHash</td><td class="ty">string?</td><td>Solo auth por email (bcrypt). Ausente si solo OAuth. <code>select:false</code>.</td></tr>
+          <tr><td class="f">authProviders[]</td><td class="ty">subdoc[]</td><td><code>{ provider: 'password'|'google', providerId, linkedAt }</code>.</td></tr>
+          <tr><td class="f">avatar</td><td class="ty">Media-ref</td><td><code>{ url, publicId }</code> (Cloudinary).</td></tr>
+          <tr><td class="f">bio · location</td><td class="ty">string</td><td>Perfil. <code>location: { name, coords? }</code>.</td></tr>
+          <tr><td class="f">role</td><td class="ty">enum</td><td><code>'user' | 'guide' | 'admin'</code>.</td></tr>
+          <tr><td class="f">guide</td><td class="ty">subdoc?</td><td><code>{ status, certification, certBody, verifiedAt, verifiedBy }</code> (resumen del proceso; detalle en <code>guideApplications</code>).</td></tr>
+          <tr><td class="f">stats</td><td class="ty">subdoc</td><td><code>{ trips, vivacs, distanceKm, elevationGain }</code> — denormalizado para el perfil.</td></tr>
+          <tr><td class="f">achievements[]</td><td class="ty">subdoc[]</td><td><code>{ key, label, earnedAt }</code> (logros del perfil).</td></tr>
+          <tr><td class="f">settings</td><td class="ty">subdoc</td><td><code>{ theme, density, fontPair, units, defaultTripVisibility, notifications:{ push, email, ... } }</code>.</td></tr>
+          <tr><td class="f">counts</td><td class="ty">subdoc</td><td><code>{ followers, following }</code> denormalizado.</td></tr>
+          <tr><td class="f">status</td><td class="ty">enum</td><td><code>'active' | 'suspended' | 'banned'</code> (moderación admin).</td></tr>
+          <tr><td class="f">lastActiveAt</td><td class="ty">Date</td><td>Para “usuarios activos” en analíticas.</td></tr>
+        </tbody></table>
+      </div>
+
+      <!-- guideApplications -->
+      <div class="schema">
+        <div class="schema__h"><span class="schema__name">guideApplications</span><span class="schema__tag">admin · verificación</span></div>
+        <table><tbody>
+          <tr><td class="f">userId</td><td class="ty">ref users</td><td>Solicitante.</td></tr>
+          <tr><td class="f">certification · certBody</td><td class="ty">string</td><td>Titulación (p. ej. “TD Media Montaña”, “AEGM/FEDME”).</td></tr>
+          <tr><td class="f">documents[]</td><td class="ty">Media[]</td><td>Adjuntos justificativos (Cloudinary).</td></tr>
+          <tr><td class="f">status</td><td class="ty">enum</td><td><code>'pending' | 'in_review' | 'approved' | 'rejected'</code>.</td></tr>
+          <tr><td class="f">reviewedBy · reviewedAt · notes</td><td class="ty">mixed</td><td>Resolución del admin. Índice por <code>status</code>.</td></tr>
+        </tbody></table>
+      </div>
+
+      <!-- trips -->
+      <div class="schema">
+        <div class="schema__h"><span class="schema__name">trips</span><span class="schema__tag">salidas / excursiones</span></div>
+        <table><tbody>
+          <tr><td class="f">title · slug</td><td class="ty">string</td><td><code>slug</code> indexado para URLs públicas.</td></tr>
+          <tr><td class="f">cover · description</td><td class="ty">mixed</td><td>Portada (Media) + descripción.</td></tr>
+          <tr><td class="f">owner</td><td class="ty">ref users</td><td>Creador. Índice.</td></tr>
+          <tr><td class="f">members[]</td><td class="ty">subdoc[]</td><td><code>{ userId, role:'owner'|'member', rsvp:'invited'|'going'|'maybe'|'declined', joinedAt }</code>.</td></tr>
+          <tr><td class="f">startDate · endDate</td><td class="ty">Date</td><td>Ventana de la salida (vivac = noche fuera).</td></tr>
+          <tr><td class="f">location</td><td class="ty">subdoc</td><td><code>{ name, coords:{lat,lng}, placeId }</code>. Índice <code>2dsphere</code> para “cerca de mí”.</td></tr>
+          <tr><td class="f">difficulty</td><td class="ty">enum</td><td><code>'facil'|'moderada'|'dificil'|'alpina'</code>.</td></tr>
+          <tr><td class="f">distanceKm · elevationGain</td><td class="ty">number</td><td>Métricas.</td></tr>
+          <tr><td class="f">visibility</td><td class="ty">enum</td><td><code>'private' | 'public'</code> (alimenta Explorar).</td></tr>
+          <tr><td class="f">status</td><td class="ty">enum</td><td><code>'planning'|'confirmed'|'completed'|'cancelled'</code>.</td></tr>
+          <tr><td class="f">gpx</td><td class="ty">Media?</td><td>Track descargable de salidas públicas.</td></tr>
+          <tr><td class="f">stats</td><td class="ty">subdoc</td><td><code>{ pinCount, photoCount, kudos, commentCount }</code> denormalizado.</td></tr>
+          <tr><td class="f">completedAt</td><td class="ty">Date?</td><td>Marca de finalización (genera actividad de feed).</td></tr>
+        </tbody></table>
+      </div>
+
+      <!-- pins -->
+      <div class="schema">
+        <div class="schema__h"><span class="schema__name">pins</span><span class="schema__tag">tablero · discriminado por tipo</span></div>
+        <table><tbody>
+          <tr><td class="f">tripId</td><td class="ty">ref trips</td><td>Tablero al que pertenece. Índice.</td></tr>
+          <tr><td class="f">authorId</td><td class="ty">ref users</td><td>Quién lo creó.</td></tr>
+          <tr><td class="f">type</td><td class="ty">enum</td><td><code>'note'|'photo'|'link'|'list'|'map'|'text'</code>.</td></tr>
+          <tr><td class="f">layout</td><td class="ty">subdoc</td><td><code>{ x, y, rotation, z, w }</code> — posición en el mural libre.</td></tr>
+          <tr><td class="f">note / text</td><td class="ty">subdoc?</td><td><code>note: { markdown }</code> · <code>text: { body, color }</code>.</td></tr>
+          <tr><td class="f">photo</td><td class="ty">subdoc?</td><td><code>{ media, caption }</code>.</td></tr>
+          <tr><td class="f">link</td><td class="ty">subdoc?</td><td><code>{ url, title, description, image, domain }</code> (unfurl).</td></tr>
+          <tr><td class="f">map</td><td class="ty">subdoc?</td><td><code>{ label, coords, placeId, address, elevation }</code>.</td></tr>
+          <tr><td class="f">list</td><td class="ty">subdoc?</td><td><code>{ gearListId }</code> → ref a <code>gearLists</code>.</td></tr>
+          <tr><td class="f">reactions[]</td><td class="ty">subdoc[]</td><td><code>{ userId, emoji }</code>.</td></tr>
+        </tbody></table>
+      </div>
+
+      <!-- gearLists -->
+      <div class="schema">
+        <div class="schema__h"><span class="schema__name">gearLists</span><span class="schema__tag">listas de equipo</span></div>
+        <table><tbody>
+          <tr><td class="f">ownerId</td><td class="ty">ref users</td><td>Dueño de la lista.</td></tr>
+          <tr><td class="f">name · description · icon</td><td class="ty">mixed</td><td>Metadatos de la lista.</td></tr>
+          <tr><td class="f">items[]</td><td class="ty">subdoc[]</td><td><code>{ name, weightGrams, checked, addedBy, product? }</code>.</td></tr>
+          <tr><td class="f">items[].product</td><td class="ty">subdoc?</td><td><code>{ storeKey, title, url, price, currency, image, externalId }</code> — enlace a tienda (vía microservicio).</td></tr>
+          <tr><td class="f">totalWeight</td><td class="ty">number</td><td>Suma denormalizada (g).</td></tr>
+          <tr><td class="f">isTemplate</td><td class="ty">boolean</td><td>Lista reutilizable de “Mi equipo”.</td></tr>
+          <tr><td class="f">usedInTrips[]</td><td class="ty">ref trips[]</td><td>Dónde se ha pineado.</td></tr>
+          <tr><td class="f">visibility</td><td class="ty">enum</td><td><code>'private'|'trip'|'public'</code>.</td></tr>
+        </tbody></table>
+      </div>
+
+      <!-- messages -->
+      <div class="schema">
+        <div class="schema__h"><span class="schema__name">messages</span><span class="schema__tag">chat de grupo</span></div>
+        <table><tbody>
+          <tr><td class="f">tripId</td><td class="ty">ref trips</td><td>Cada salida tiene su chat. Índice <code>{ tripId, createdAt }</code>.</td></tr>
+          <tr><td class="f">authorId</td><td class="ty">ref users</td><td>Emisor (null si <code>system</code>).</td></tr>
+          <tr><td class="f">type</td><td class="ty">enum</td><td><code>'text' | 'pin_share' | 'system'</code>.</td></tr>
+          <tr><td class="f">body</td><td class="ty">string</td><td>Contenido (markdown ligero).</td></tr>
+          <tr><td class="f">pinRef · attachments[]</td><td class="ty">mixed</td><td>Pin compartido / adjuntos.</td></tr>
+          <tr><td class="f">readBy[]</td><td class="ty">subdoc[]</td><td><code>{ userId, at }</code> para no leídos.</td></tr>
+          <tr><td class="f">editedAt · deletedAt</td><td class="ty">Date?</td><td>Edición / borrado suave.</td></tr>
+        </tbody></table>
+      </div>
+
+      <!-- tips -->
+      <div class="schema">
+        <div class="schema__h"><span class="schema__name">tips</span><span class="schema__tag">consejos / artículos</span></div>
+        <table><tbody>
+          <tr><td class="f">authorId</td><td class="ty">ref users</td><td>Autor (badge de guía si aplica).</td></tr>
+          <tr><td class="f">title · slug · cover · excerpt</td><td class="ty">mixed</td><td><code>slug</code> indexado.</td></tr>
+          <tr><td class="f">category</td><td class="ty">enum</td><td><code>'material'|'seguridad'|'rutas'|'vivac'|'meteo'</code>.</td></tr>
+          <tr><td class="f">contentMarkdown</td><td class="ty">string</td><td>Cuerpo en Markdown.</td></tr>
+          <tr><td class="f">readMinutes · tags[]</td><td class="ty">mixed</td><td>Metadatos.</td></tr>
+          <tr><td class="f">status</td><td class="ty">enum</td><td><code>'draft'|'published'|'archived'</code>.</td></tr>
+          <tr><td class="f">moderation</td><td class="ty">subdoc</td><td><code>{ status:'ok'|'flagged'|'removed', reviewedBy }</code>.</td></tr>
+          <tr><td class="f">counts</td><td class="ty">subdoc</td><td><code>{ likes, comments, views }</code> denormalizado.</td></tr>
+          <tr><td class="f">publishedAt</td><td class="ty">Date?</td><td>Para orden del feed.</td></tr>
+        </tbody></table>
+      </div>
+
+      <!-- social: follows, reactions, comments -->
+      <div class="grid g3">
+        <div class="schema">
+          <div class="schema__h"><span class="schema__name">follows</span></div>
+          <table><tbody>
+            <tr><td class="f">followerId</td><td class="ty">ref</td></tr>
+            <tr><td class="f">followingId</td><td class="ty">ref</td></tr>
+          </tbody></table>
+          <p style="padding:0 18px 14px;margin:0;font-size:13px;color:var(--ink-3)">Índice único compuesto.</p>
+        </div>
+        <div class="schema">
+          <div class="schema__h"><span class="schema__name">reactions</span></div>
+          <table><tbody>
+            <tr><td class="f">userId</td><td class="ty">ref</td></tr>
+            <tr><td class="f">targetType</td><td class="ty">enum</td></tr>
+            <tr><td class="f">targetId</td><td class="ty">ObjectId</td></tr>
+          </tbody></table>
+          <p style="padding:0 18px 14px;margin:0;font-size:13px;color:var(--ink-3)">Likes polimórficos (tip, trip, pin).</p>
+        </div>
+        <div class="schema">
+          <div class="schema__h"><span class="schema__name">comments</span></div>
+          <table><tbody>
+            <tr><td class="f">authorId</td><td class="ty">ref</td></tr>
+            <tr><td class="f">targetType/Id</td><td class="ty">poly</td></tr>
+            <tr><td class="f">body · parentId?</td><td class="ty">mixed</td></tr>
+          </tbody></table>
+          <p style="padding:0 18px 14px;margin:0;font-size:13px;color:var(--ink-3)">Comentarios anidables.</p>
+        </div>
+      </div>
+
+      <!-- notifications -->
+      <div class="schema">
+        <div class="schema__h"><span class="schema__name">notifications</span><span class="schema__tag">centro de notificaciones</span></div>
+        <table><tbody>
+          <tr><td class="f">userId</td><td class="ty">ref users</td><td>Destinatario. Índice <code>{ userId, read, createdAt }</code>.</td></tr>
+          <tr><td class="f">type</td><td class="ty">enum</td><td><code>trip_invite · trip_join · new_message · pin_added · tip_like · comment · follow · guide_approved · guide_rejected · help_request · mention</code>.</td></tr>
+          <tr><td class="f">actorId</td><td class="ty">ref users</td><td>Quién origina la notificación.</td></tr>
+          <tr><td class="f">target</td><td class="ty">subdoc</td><td><code>{ type, id }</code> (a qué apunta).</td></tr>
+          <tr><td class="f">data</td><td class="ty">mixed</td><td>Payload para render (texto, miniatura).</td></tr>
+          <tr><td class="f">read · readAt</td><td class="ty">bool/Date</td><td>Estado de lectura.</td></tr>
+          <tr><td class="f">channels</td><td class="ty">subdoc</td><td><code>{ push, email }</code> — entrega gestionada por worker.</td></tr>
+        </tbody></table>
+      </div>
+
+      <!-- activities -->
+      <div class="schema">
+        <div class="schema__h"><span class="schema__name">activities</span><span class="schema__tag">feed de inicio</span></div>
+        <table><tbody>
+          <tr><td class="f">actorId</td><td class="ty">ref users</td><td>Autor de la actividad.</td></tr>
+          <tr><td class="f">type</td><td class="ty">enum</td><td><code>'trip_completed' | 'tip_published' | 'achievement'</code>.</td></tr>
+          <tr><td class="f">tripId · tipId</td><td class="ty">ref?</td><td>Objeto asociado.</td></tr>
+          <tr><td class="f">visibility</td><td class="ty">enum</td><td>Respeta la visibilidad del objeto. Índice <code>{ actorId, createdAt }</code>.</td></tr>
+        </tbody></table>
+        <p style="padding:0 18px 14px;margin:0;font-size:13px;color:var(--ink-3)">Colección de fan-out para construir el feed de “tu cordada” sin recalcular en cada carga.</p>
+      </div>
+
+      <!-- reports + sessions + media + metrics -->
+      <div class="grid g2">
+        <div class="schema">
+          <div class="schema__h"><span class="schema__name">reports</span><span class="schema__tag">admin</span></div>
+          <table><tbody>
+            <tr><td class="f">reporterId</td><td class="ty">ref users</td></tr>
+            <tr><td class="f">targetType/Id</td><td class="ty">poly</td></tr>
+            <tr><td class="f">reason · description</td><td class="ty">string</td></tr>
+            <tr><td class="f">status</td><td class="ty">enum</td></tr>
+            <tr><td class="f">handledBy · resolvedAt</td><td class="ty">mixed</td></tr>
+          </tbody></table>
+        </div>
+        <div class="schema">
+          <div class="schema__h"><span class="schema__name">sessions</span><span class="schema__tag">refresh tokens</span></div>
+          <table><tbody>
+            <tr><td class="f">userId</td><td class="ty">ref users</td></tr>
+            <tr><td class="f">tokenHash</td><td class="ty">string</td></tr>
+            <tr><td class="f">device · ip · userAgent</td><td class="ty">string</td></tr>
+            <tr><td class="f">expiresAt · revokedAt</td><td class="ty">Date</td></tr>
+          </tbody></table>
+        </div>
+        <div class="schema">
+          <div class="schema__h"><span class="schema__name">media</span><span class="schema__tag">imágenes</span></div>
+          <table><tbody>
+            <tr><td class="f">uploaderId</td><td class="ty">ref users</td></tr>
+            <tr><td class="f">url · publicId</td><td class="ty">string</td></tr>
+            <tr><td class="f">width · height · bytes</td><td class="ty">number</td></tr>
+            <tr><td class="f">moderation</td><td class="ty">subdoc</td></tr>
+          </tbody></table>
+          <p style="padding:0 18px 14px;margin:0;font-size:13px;color:var(--ink-3)"><code>moderation: { status:'pending'|'approved'|'rejected', labels[], provider }</code> — la rellena el worker.</p>
+        </div>
+        <div class="schema">
+          <div class="schema__h"><span class="schema__name">dailyMetrics</span><span class="schema__tag">analíticas admin</span></div>
+          <table><tbody>
+            <tr><td class="f">date</td><td class="ty">Date · unique</td></tr>
+            <tr><td class="f">newUsers · activeUsers</td><td class="ty">number</td></tr>
+            <tr><td class="f">tripsCreated · tipsPublished</td><td class="ty">number</td></tr>
+            <tr><td class="f">guidesVerified · reports</td><td class="ty">number</td></tr>
+          </tbody></table>
+          <p style="padding:0 18px 14px;margin:0;font-size:13px;color:var(--ink-3)">Snapshot diario agregado por worker para los KPIs y gráficos del panel.</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============== 12 · ENDPOINTS ============== -->
+    <section id="endpoints">
+      <div class="eyebrow">12 · Backend</div>
+      <h2>Endpoints de la API</h2>
+      <p>Contrato REST base (<code>/api/v1</code>). <span class="ep__auth">auth</span> = requiere access token ·
+        <span class="ep__auth admin">admin</span> = requiere rol admin. El realtime (chat/tablero) va por Socket.IO.</p>
+
+      <div class="epgroup">
+        <div class="epgroup__h">Auth</div>
+        <div class="ep"><span class="verb post">POST</span><span class="ep__path">/auth/google</span><span class="ep__desc">Verifica ID token de Firebase → tokens propios</span></div>
+        <div class="ep"><span class="verb post">POST</span><span class="ep__path">/auth/register</span><span class="ep__desc">Registro con email + contraseña</span></div>
+        <div class="ep"><span class="verb post">POST</span><span class="ep__path">/auth/login</span><span class="ep__desc">Login con email</span></div>
+        <div class="ep"><span class="verb post">POST</span><span class="ep__path">/auth/refresh</span><span class="ep__desc">Rota refresh → nuevo access</span></div>
+        <div class="ep"><span class="verb post">POST</span><span class="ep__path">/auth/logout</span><span class="ep__desc">Revoca la sesión</span></div>
+        <div class="ep"><span class="verb post">POST</span><span class="ep__path">/auth/verify-email · /forgot-password · /reset-password</span><span class="ep__desc">Flujos por email (Brevo)</span></div>
+        <div class="ep"><span class="verb get">GET</span><span class="ep__path">/auth/me</span><span class="ep__auth">auth</span><span class="ep__desc">Usuario actual + settings</span></div>
+      </div>
+
+      <div class="epgroup">
+        <div class="epgroup__h">Usuarios · perfil · social</div>
+        <div class="ep"><span class="verb get">GET</span><span class="ep__path">/users/:username</span><span class="ep__desc">Perfil público + stats</span></div>
+        <div class="ep"><span class="verb patch">PATCH</span><span class="ep__path">/users/me</span><span class="ep__auth">auth</span><span class="ep__desc">Editar perfil</span></div>
+        <div class="ep"><span class="verb patch">PATCH</span><span class="ep__path">/users/me/settings</span><span class="ep__auth">auth</span><span class="ep__desc">Tema, densidad, unidades, notificaciones</span></div>
+        <div class="ep"><span class="verb post">POST</span><span class="ep__path">/users/me/avatar</span><span class="ep__auth">auth</span><span class="ep__desc">Subida de avatar (sharp→Cloudinary)</span></div>
+        <div class="ep"><span class="verb get">GET</span><span class="ep__path">/users/:id/trips · /tips</span><span class="ep__desc">Salidas y consejos del usuario</span></div>
+        <div class="ep"><span class="verb post">POST</span><span class="ep__path">/users/:id/follow</span><span class="ep__auth">auth</span><span class="ep__desc">Seguir</span></div>
+        <div class="ep"><span class="verb del">DEL</span><span class="ep__path">/users/:id/follow</span><span class="ep__auth">auth</span><span class="ep__desc">Dejar de seguir</span></div>
+      </div>
+
+      <div class="epgroup">
+        <div class="epgroup__h">Guías</div>
+        <div class="ep"><span class="verb post">POST</span><span class="ep__path">/guide/apply</span><span class="ep__auth">auth</span><span class="ep__desc">Solicitar rol de guía + documentos</span></div>
+        <div class="ep"><span class="verb get">GET</span><span class="ep__path">/guide/application</span><span class="ep__auth">auth</span><span class="ep__desc">Estado de la propia solicitud</span></div>
+      </div>
+
+      <div class="epgroup">
+        <div class="epgroup__h">Salidas (trips)</div>
+        <div class="ep"><span class="verb post">POST</span><span class="ep__path">/trips</span><span class="ep__auth">auth</span><span class="ep__desc">Crear salida</span></div>
+        <div class="ep"><span class="verb get">GET</span><span class="ep__path">/trips</span><span class="ep__auth">auth</span><span class="ep__desc">Mis salidas</span></div>
+        <div class="ep"><span class="verb get">GET</span><span class="ep__path">/trips/:id</span><span class="ep__auth">auth</span><span class="ep__desc">Detalle (miembro)</span></div>
+        <div class="ep"><span class="verb patch">PATCH</span><span class="ep__path">/trips/:id</span><span class="ep__auth">auth</span><span class="ep__desc">Editar (owner)</span></div>
+        <div class="ep"><span class="verb del">DEL</span><span class="ep__path">/trips/:id</span><span class="ep__auth">auth</span><span class="ep__desc">Eliminar (owner)</span></div>
+        <div class="ep"><span class="verb post">POST</span><span class="ep__path">/trips/:id/invite</span><span class="ep__auth">auth</span><span class="ep__desc">Invitar amigos</span></div>
+        <div class="ep"><span class="verb patch">PATCH</span><span class="ep__path">/trips/:id/rsvp</span><span class="ep__auth">auth</span><span class="ep__desc">Confirmar asistencia</span></div>
+        <div class="ep"><span class="verb post">POST</span><span class="ep__path">/trips/:id/complete</span><span class="ep__auth">auth</span><span class="ep__desc">Marcar completada → actividad</span></div>
+        <div class="ep"><span class="verb get">GET</span><span class="ep__path">/explore/trips</span><span class="ep__desc">Salidas públicas (filtros, geo)</span></div>
+      </div>
+
+      <div class="epgroup">
+        <div class="epgroup__h">Tablero · pines</div>
+        <div class="ep"><span class="verb get">GET</span><span class="ep__path">/trips/:id/board</span><span class="ep__auth">auth</span><span class="ep__desc">Pines del tablero</span></div>
+        <div class="ep"><span class="verb post">POST</span><span class="ep__path">/trips/:id/pins</span><span class="ep__auth">auth</span><span class="ep__desc">Crear pin (note/photo/link/list/map/text)</span></div>
+        <div class="ep"><span class="verb patch">PATCH</span><span class="ep__path">/pins/:id</span><span class="ep__auth">auth</span><span class="ep__desc">Editar / mover (layout)</span></div>
+        <div class="ep"><span class="verb del">DEL</span><span class="ep__path">/pins/:id</span><span class="ep__auth">auth</span><span class="ep__desc">Eliminar pin</span></div>
+        <div class="ep"><span class="verb post">POST</span><span class="ep__path">/pins/:id/reactions</span><span class="ep__auth">auth</span><span class="ep__desc">Reaccionar a un pin</span></div>
+      </div>
+
+      <div class="epgroup">
+        <div class="epgroup__h">Listas de equipo · productos</div>
+        <div class="ep"><span class="verb get">GET</span><span class="ep__path">/gear-lists</span><span class="ep__auth">auth</span><span class="ep__desc">Mi biblioteca de listas</span></div>
+        <div class="ep"><span class="verb post">POST</span><span class="ep__path">/gear-lists</span><span class="ep__auth">auth</span><span class="ep__desc">Crear lista</span></div>
+        <div class="ep"><span class="verb patch">PATCH</span><span class="ep__path">/gear-lists/:id/items/:itemId</span><span class="ep__auth">auth</span><span class="ep__desc">Editar/marcar ítem</span></div>
+        <div class="ep"><span class="verb get">GET</span><span class="ep__path">/products/search?q=&amp;stores=</span><span class="ep__auth">auth</span><span class="ep__desc">Proxy al microservicio de tiendas</span></div>
+        <div class="ep"><span class="verb get">GET</span><span class="ep__path">/products/:store/:externalId</span><span class="ep__auth">auth</span><span class="ep__desc">Detalle de producto</span></div>
+      </div>
+
+      <div class="epgroup">
+        <div class="epgroup__h">Chat (REST + Socket.IO)</div>
+        <div class="ep"><span class="verb get">GET</span><span class="ep__path">/trips/:id/messages</span><span class="ep__auth">auth</span><span class="ep__desc">Historial paginado</span></div>
+        <div class="ep"><span class="verb post">POST</span><span class="ep__path">/trips/:id/messages</span><span class="ep__auth">auth</span><span class="ep__desc">Enviar (también emite por socket)</span></div>
+        <div class="ep"><span class="verb del">DEL</span><span class="ep__path">/messages/:id</span><span class="ep__auth">auth</span><span class="ep__desc">Borrado suave</span></div>
+      </div>
+
+      <div class="epgroup">
+        <div class="epgroup__h">Consejos</div>
+        <div class="ep"><span class="verb get">GET</span><span class="ep__path">/tips?category=</span><span class="ep__desc">Feed de consejos publicados</span></div>
+        <div class="ep"><span class="verb post">POST</span><span class="ep__path">/tips</span><span class="ep__auth">auth</span><span class="ep__desc">Publicar / borrador</span></div>
+        <div class="ep"><span class="verb get">GET</span><span class="ep__path">/tips/:slug</span><span class="ep__desc">Detalle del artículo</span></div>
+        <div class="ep"><span class="verb patch">PATCH</span><span class="ep__path">/tips/:id</span><span class="ep__auth">auth</span><span class="ep__desc">Editar (autor)</span></div>
+        <div class="ep"><span class="verb post">POST</span><span class="ep__path">/tips/:id/like · /comments</span><span class="ep__auth">auth</span><span class="ep__desc">Like / comentar</span></div>
+      </div>
+
+      <div class="epgroup">
+        <div class="epgroup__h">Notificaciones · media</div>
+        <div class="ep"><span class="verb get">GET</span><span class="ep__path">/notifications</span><span class="ep__auth">auth</span><span class="ep__desc">Listado + no leídas</span></div>
+        <div class="ep"><span class="verb post">POST</span><span class="ep__path">/notifications/read-all</span><span class="ep__auth">auth</span><span class="ep__desc">Marcar todo leído</span></div>
+        <div class="ep"><span class="verb post">POST</span><span class="ep__path">/media/upload</span><span class="ep__auth">auth</span><span class="ep__desc">Optimiza (sharp) → Cloudinary → encola moderación</span></div>
+      </div>
+
+      <div class="epgroup">
+        <div class="epgroup__h">Admin</div>
+        <div class="ep"><span class="verb get">GET</span><span class="ep__path">/admin/metrics · /metrics/timeseries</span><span class="ep__auth admin">admin</span><span class="ep__desc">KPIs y series para gráficos</span></div>
+        <div class="ep"><span class="verb get">GET</span><span class="ep__path">/admin/users</span><span class="ep__auth admin">admin</span><span class="ep__desc">Tabla de usuarios</span></div>
+        <div class="ep"><span class="verb patch">PATCH</span><span class="ep__path">/admin/users/:id</span><span class="ep__auth admin">admin</span><span class="ep__desc">Rol / suspender / banear</span></div>
+        <div class="ep"><span class="verb get">GET</span><span class="ep__path">/admin/guide-applications</span><span class="ep__auth admin">admin</span><span class="ep__desc">Cola de verificación</span></div>
+        <div class="ep"><span class="verb patch">PATCH</span><span class="ep__path">/admin/guide-applications/:id</span><span class="ep__auth admin">admin</span><span class="ep__desc">Aprobar / rechazar guía</span></div>
+        <div class="ep"><span class="verb get">GET</span><span class="ep__path">/admin/reports</span><span class="ep__auth admin">admin</span><span class="ep__desc">Reportes</span></div>
+        <div class="ep"><span class="verb patch">PATCH</span><span class="ep__path">/admin/reports/:id</span><span class="ep__auth admin">admin</span><span class="ep__desc">Resolver / descartar</span></div>
+      </div>
+    </section>
+
+    <!-- ============== 13 · WORKERS ============== -->
+    <section id="workers">
+      <div class="eyebrow">13 · Backend</div>
+      <h2>Workers y colas</h2>
+      <p>Procesos en segundo plano con <strong>BullMQ</strong> sobre <strong>Redis</strong>. Se despliegan como servicio(s)
+        aparte en Railway, separados de la API.</p>
+      <table>
+        <thead><tr><th>Cola</th><th>Trabajo</th></tr></thead>
+        <tbody>
+          <tr><td class="mono">image-moderation</td><td>Tras subir a Cloudinary: analiza la imagen con un proveedor de moderación (p. ej. Cloudinary AI Moderation / Google Vision / AWS Rekognition) y actualiza <code>media.moderation</code>; oculta si se rechaza.</td></tr>
+          <tr><td class="mono">email</td><td>Envíos transaccionales vía Nodemailer + Brevo (verificación, invitaciones, reset, resúmenes).</td></tr>
+          <tr><td class="mono">notifications</td><td>Fan-out de notificaciones in-app + push/email según <code>settings.notifications</code>.</td></tr>
+          <tr><td class="mono">feed</td><td>Genera registros en <code>activities</code> al completar salidas o publicar consejos.</td></tr>
+          <tr><td class="mono">analytics</td><td>Job programado (cron) que agrega <code>dailyMetrics</code> para el panel admin.</td></tr>
+        </tbody>
+      </table>
+    </section>
+
+    <!-- ============== 14 · MICROSERVICIO ============== -->
+    <section id="microservicio">
+      <div class="eyebrow">14 · Servicios</div>
+      <h2>Microservicio agregador de tiendas</h2>
+      <div class="notice notice--accent">
+        <div class="notice__icon"><svg class="ic" viewBox="0 0 24 24"><path d="M4 4h16v6H4zM4 14h16v6H4z"/></svg></div>
+        <div><h4>Repositorio propio</h4><p>Vive en un <strong>repo separado</strong> (módulo core, posiblemente abierto a contribuidores)
+          aunque se despliega en el <strong>mismo proyecto de Railway</strong>. La API principal lo consume como proxy.</p></div>
+      </div>
+      <p>Expone una <strong>API de consultas agregadas</strong> de productos de montaña sobre múltiples tiendas
+        generales y especializadas. Usa <strong>scraping</strong> (mayoría) o <strong>APIs oficiales</strong> cuando existen,
+        normaliza los resultados y los sirve con <strong>cache propia</strong>.</p>
+      <table>
+        <thead><tr><th>Pieza</th><th>Elección</th></tr></thead>
+        <tbody>
+          <tr><td>Framework</td><td class="mono">Express + TypeScript</td></tr>
+          <tr><td>Cache</td><td class="mono">Redis (ioredis) — TTL por consulta/tienda; opcional persistencia en Mongo</td></tr>
+          <tr><td>Scraping</td><td class="mono">got/axios + cheerio (HTML) · Playwright (tiendas con JS)</td></tr>
+          <tr><td>Rate / cortesía</td><td class="mono">p-queue / bottleneck por dominio · reintentos con backoff</td></tr>
+          <tr><td>Normalización</td><td class="mono">Zod por adapter → forma común de “producto”</td></tr>
+          <tr><td>Refresco</td><td class="mono">BullMQ (revalidación de cache en background)</td></tr>
+          <tr><td>Auth interna</td><td class="mono">API key entre la API principal y el microservicio</td></tr>
+        </tbody>
+      </table>
+      <h3>Patrón de adaptadores (contributor-friendly)</h3>
+      <p>Cada tienda es un <strong>adapter</strong> que implementa una interfaz común: añadir un comercio = añadir un archivo.</p>
+      <pre><code><span class="k">interface</span> StoreAdapter {
+  key: <span class="t">'amazon'|'decathlon'|'deporvillage'|'barrabes'|'forum'|'coleman'</span>;
+  search(query: string, opts): Promise&lt;ProductResult[]&gt;;
+  getProduct(externalId: string): Promise&lt;ProductDetail&gt;;
+}</code></pre>
+      <div class="epgroup" style="margin-top:18px">
+        <div class="epgroup__h">Endpoints del microservicio</div>
+        <div class="ep"><span class="verb get">GET</span><span class="ep__path">/search?q=&amp;stores=&amp;limit=</span><span class="ep__desc">Búsqueda agregada (cacheada)</span></div>
+        <div class="ep"><span class="verb get">GET</span><span class="ep__path">/product/:store/:externalId</span><span class="ep__desc">Detalle normalizado</span></div>
+        <div class="ep"><span class="verb get">GET</span><span class="ep__path">/stores</span><span class="ep__desc">Tiendas soportadas + estado</span></div>
+        <div class="ep"><span class="verb get">GET</span><span class="ep__path">/health</span><span class="ep__desc">Healthcheck</span></div>
+      </div>
+    </section>
+
+    <!-- ============== 15 · INFRA ============== -->
+    <section id="infra">
+      <div class="eyebrow">15 · Infra</div>
+      <h2>Infraestructura</h2>
+      <div class="diag">Railway (un proyecto)
+├─ MongoDB              base de datos principal
+├─ Redis               cache + colas BullMQ + rate limit
+├─ api                 Express (web + móvil)
+├─ workers             BullMQ (imágenes, email, notif, analíticas)
+└─ store-service       microservicio de tiendas (repo aparte)
+
+Externos
+├─ Cloudinary          almacenar y servir imágenes (optimizadas con sharp en el backend)
+├─ Brevo               transporte de email (Nodemailer)
+└─ Firebase            OAuth Google (verificación con firebase-admin)</div>
+      <table>
+        <thead><tr><th>Servicio</th><th>Rol</th></tr></thead>
+        <tbody>
+          <tr><td><strong>Cloudinary</strong></td><td>Solo <strong>almacena y sirve</strong>. La optimización (resize, formato) se hace en el backend con <strong>sharp</strong> antes de subir; la moderación corre en un worker.</td></tr>
+          <tr><td><strong>MongoDB (Railway)</strong></td><td>Base de datos principal.</td></tr>
+          <tr><td><strong>Redis (Railway)</strong></td><td>Cache, colas y store de rate limiting.</td></tr>
+          <tr><td><strong>Brevo</strong></td><td>Transport SMTP/API para Nodemailer.</td></tr>
+          <tr><td><strong>Firebase</strong></td><td>Proveedor OAuth de Google.</td></tr>
+        </tbody>
+      </table>
+    </section>
+
+    <!-- ============== 16 · ENV ============== -->
+    <section id="env">
+      <div class="eyebrow">16 · Infra</div>
+      <h2>Variables de entorno</h2>
+      <table class="env">
+        <tbody>
+          <tr><td>MONGODB_URI</td><td>Conexión a MongoDB (Railway).</td></tr>
+          <tr><td>REDIS_URL</td><td>Conexión a Redis (cache + colas).</td></tr>
+          <tr><td>JWT_ACCESS_SECRET · JWT_REFRESH_SECRET</td><td>Firma de tokens.</td></tr>
+          <tr><td>FIREBASE_PROJECT_ID · FIREBASE_CLIENT_EMAIL · FIREBASE_PRIVATE_KEY</td><td>Credenciales de firebase-admin.</td></tr>
+          <tr><td>CLOUDINARY_CLOUD_NAME · _API_KEY · _API_SECRET</td><td>SDK de Cloudinary.</td></tr>
+          <tr><td>BREVO_API_KEY / SMTP_*</td><td>Transport de Nodemailer.</td></tr>
+          <tr><td>STORE_SERVICE_URL · STORE_SERVICE_API_KEY</td><td>Microservicio de tiendas.</td></tr>
+          <tr><td>GOOGLE_MAPS_API_KEY</td><td>Mapas (web/móvil) y Places.</td></tr>
+          <tr><td>CORS_ORIGINS</td><td>Allow-list de orígenes.</td></tr>
+          <tr><td>MODERATION_PROVIDER_KEY</td><td>Proveedor de moderación de imágenes.</td></tr>
+        </tbody>
+      </table>
+    </section>
+
+    <!-- ============== 17 · CHECKLIST ============== -->
+    <section id="checklist">
+      <div class="eyebrow">17</div>
+      <h2>Checklist de desarrollo</h2>
+      <div class="grid g2">
+        <div class="card">
+          <h4 style="margin-top:0">Fundamentos</h4>
+          <ul style="margin:0;list-style:none;padding:0">
+            <li>☐ Monorepo Turborepo + pnpm + TS base.</li>
+            <li>☐ Packages <code>types · validation · sdk · utils</code>.</li>
+            <li>☐ Preset de Tailwind/NativeWind desde tokens.</li>
+            <li>☐ Conexión Mongo + Redis en Railway.</li>
+          </ul>
+        </div>
+        <div class="card">
+          <h4 style="margin-top:0">Backend</h4>
+          <ul style="margin:0;list-style:none;padding:0">
+            <li>☐ Cadena de middlewares (helmet/cors/rate/log).</li>
+            <li>☐ Auth Google + email (access/refresh).</li>
+            <li>☐ Modelos Mongoose (sección 11) con índices.</li>
+            <li>☐ Endpoints (sección 12) + validación Zod.</li>
+            <li>☐ Socket.IO (chat + tablero).</li>
+            <li>☐ Workers BullMQ (imagen/email/notif/analytics).</li>
+          </ul>
+        </div>
+        <div class="card">
+          <h4 style="margin-top:0">Frontend</h4>
+          <ul style="margin:0;list-style:none;padding:0">
+            <li>☐ Web (Vite) con DaisyUI + convención de componentes.</li>
+            <li>☐ Móvil (RN + NativeWind) reusando stores/SDK.</li>
+            <li>☐ Mapas, DnD del tablero, markdown, charts admin.</li>
+            <li>☐ Rutas protegidas por rol.</li>
+          </ul>
+        </div>
+        <div class="card">
+          <h4 style="margin-top:0">Servicios</h4>
+          <ul style="margin:0;list-style:none;padding:0">
+            <li>☐ Microservicio de tiendas (repo aparte) + cache Redis.</li>
+            <li>☐ Adapters por tienda (patrón común).</li>
+            <li>☐ Cloudinary + sharp + moderación.</li>
+            <li>☐ Brevo + Firebase configurados.</li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="notice" style="margin-top:24px">
+        <div class="notice__icon"><svg class="ic" viewBox="0 0 24 24"><path d="M5 12.5 10 17 19 7"/></svg></div>
+        <div><h4>Listo para implementar</h4><p>Con el diseño (Guía de implementación) + este plano técnico, un equipo o agente
+          tiene stack, estructura, librerías, modelo de datos, endpoints e infraestructura para construir YourVivac de extremo a extremo.</p></div>
+      </div>
+
+      <div class="foot">YourVivac · Guía de desarrollo · v1.0 · Stack 100% definido · TypeScript en todo el proyecto</div>
+    </section>
+
+  </main>
+</div>
+</body>
+</html>

@@ -1,0 +1,146 @@
+<!doctype html>
+<html lang="es" data-theme="light">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>YourVivac · Documentación</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Young+Serif&family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;0,6..72,600;1,6..72,400&family=Spline+Sans+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="yourvivac.css" />
+  <style>
+    html,body{margin:0}
+    body{ background:var(--bg); color:var(--ink); font-family:var(--font-body); -webkit-font-smoothing:antialiased; }
+    .wrap{ max-width:1080px; margin:0 auto; padding:64px 32px 100px; position:relative; }
+    .topo{ position:absolute; inset:0; pointer-events:none; overflow:hidden;
+      background-image: repeating-radial-gradient(circle at 16% 12%, transparent 0 22px, var(--topo) 22px 23px),
+                        repeating-radial-gradient(circle at 90% 80%, transparent 0 28px, var(--topo) 28px 29px); }
+    h1{ font-family:var(--font-display); font-weight:400; font-size:52px; line-height:1.02; letter-spacing:-0.02em; margin:0; }
+    h2{ font-family:var(--font-display); font-weight:400; font-size:26px; margin:0; }
+    .eyebrow{ font-family:var(--font-mono); font-size:12px; letter-spacing:.16em; text-transform:uppercase; color:var(--accent-2); }
+    .lead{ font-size:20px; line-height:1.5; color:var(--ink-2); max-width:640px; margin-top:18px; }
+    .mono{ font-family:var(--font-mono); }
+    .head{ display:flex; align-items:center; gap:14px; }
+    .mk{ width:46px; height:46px; flex:none; }
+
+    .meta{ display:flex; gap:10px; flex-wrap:wrap; margin-top:26px; }
+    .pill{ display:inline-flex; align-items:center; gap:7px; font-family:var(--font-mono); font-size:12px; padding:6px 13px; border-radius:999px; background:var(--bg-2); color:var(--ink-2); box-shadow:inset 0 0 0 1px var(--line); }
+    .pill b{ color:var(--accent-2); }
+
+    .sec{ font-family:var(--font-mono); font-size:12px; letter-spacing:.14em; text-transform:uppercase; color:var(--ink-3); margin:54px 0 16px; }
+
+    .grid{ display:grid; grid-template-columns:1fr 1fr; gap:18px; position:relative; }
+    .card{ display:flex; flex-direction:column; background:var(--bg-2); border-radius:20px; box-shadow:inset 0 0 0 1px var(--line); padding:24px; text-decoration:none; color:inherit; transition:transform .14s, box-shadow .14s; position:relative; overflow:hidden; }
+    .card:hover{ transform:translateY(-3px); box-shadow:inset 0 0 0 1px var(--line-2), var(--shadow); }
+    .card__n{ font-family:var(--font-mono); font-size:13px; color:var(--accent-2); }
+    .card__t{ font-family:var(--font-display); font-size:25px; line-height:1.06; margin:8px 0 0; }
+    .card__d{ font-size:15px; color:var(--ink-2); margin-top:10px; flex:1 1 auto; }
+    .card__links{ display:flex; gap:8px; margin-top:18px; }
+    .lnk{ font-family:var(--font-mono); font-size:12px; padding:6px 12px; border-radius:8px; box-shadow:inset 0 0 0 1px var(--line-2); color:var(--ink); text-decoration:none; }
+    .lnk:hover{ background:var(--bg-3); }
+    .lnk.pri{ background:var(--accent); color:var(--accent-ink); box-shadow:none; font-weight:600; }
+    .tag{ position:absolute; top:18px; right:18px; font-family:var(--font-mono); font-size:10px; letter-spacing:.06em; text-transform:uppercase; padding:3px 9px; border-radius:999px; }
+    .tag.light{ background:color-mix(in srgb,var(--accent) 16%,transparent); color:var(--accent-2); }
+    .tag.dark{ background:#1c271f; color:#a8d77c; }
+
+    .hero-card{ grid-column:1 / -1; display:flex; flex-direction:row; gap:28px; align-items:center; background:linear-gradient(120deg, var(--bg-2), var(--bg-3)); }
+    .hero-card .num{ font-family:var(--font-display); font-size:60px; color:var(--accent); line-height:1; flex:none; }
+
+    .foot{ margin-top:64px; padding-top:24px; border-top:1px solid var(--line); font-family:var(--font-mono); font-size:12.5px; color:var(--ink-3); display:flex; justify-content:space-between; flex-wrap:wrap; gap:10px; }
+
+    @media (max-width:780px){ .wrap{ padding:40px 20px 70px } h1{ font-size:38px } .grid{ grid-template-columns:1fr } .hero-card{ flex-direction:column; align-items:flex-start } }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="topo"></div>
+
+    <header style="position:relative">
+      <div class="head">
+        <svg class="mk" viewBox="0 0 40 40" aria-hidden="true">
+          <circle cx="20" cy="20" r="18.5" fill="none" stroke="var(--accent)" stroke-width="1.4" opacity="0.45"/>
+          <circle cx="20" cy="20" r="13" fill="none" stroke="var(--accent)" stroke-width="1.4" opacity="0.75"/>
+          <path d="M9 27 L18 12 L23 20 L26.5 15 L31 27 Z" fill="var(--accent)"/>
+        </svg>
+        <span class="eyebrow">YourVivac · Documentación</span>
+      </div>
+      <h1 style="margin-top:22px">El campamento base<br>de la documentación</h1>
+      <p class="lead">Todo lo necesario para construir YourVivac: diseño, desarrollo, el agregador de tiendas y el manual de lógica, testing y contribución.</p>
+      <div class="meta">
+        <span class="pill"><b>Monorepo</b> Turborepo</span>
+        <span class="pill"><b>Web</b> React · Vite · Tailwind</span>
+        <span class="pill"><b>Móvil</b> React Native</span>
+        <span class="pill"><b>API</b> Express · Mongoose</span>
+        <span class="pill">TypeScript en todo</span>
+      </div>
+    </header>
+
+    <div class="sec">Empieza aquí</div>
+    <div class="grid">
+      <a class="card hero-card" href="YourVivac.html">
+        <span class="num">0</span>
+        <span>
+          <span class="card__n">DISEÑO NAVEGABLE</span>
+          <h2 class="card__t" style="margin-top:6px">Lienzo de pantallas</h2>
+          <p class="card__d" style="margin-top:8px">Todas las pantallas (móvil + escritorio), temas claro/oscuro y tweaks. La fuente visual de verdad — empieza por aquí para el contexto.</p>
+          <span class="card__links"><span class="lnk pri">Abrir lienzo →</span></span>
+        </span>
+      </a>
+    </div>
+
+    <div class="sec">Guías</div>
+    <div class="grid">
+
+      <a class="card" href="YourVivac — Guía de implementación.html">
+        <span class="tag light">Claro</span>
+        <span class="card__n">01 · Diseño</span>
+        <h2 class="card__t">Implementación de diseño</h2>
+        <p class="card__d">Tokens (color, tipografía, espaciado, sombras), mapa de componentes web ↔ React Native, inventario de pantallas y tipos de pin.</p>
+        <span class="card__links">
+          <span class="lnk pri">HTML</span>
+          <span class="lnk">.md</span>
+        </span>
+      </a>
+
+      <a class="card" href="YourVivac — Guía de desarrollo.html">
+        <span class="tag light">Claro</span>
+        <span class="card__n">02 · Desarrollo</span>
+        <h2 class="card__t">Guía de desarrollo</h2>
+        <p class="card__d">Stack, monorepo Turborepo, packages compartidos, librerías por funcionalidad, modelo de datos MongoDB completo, endpoints e infraestructura.</p>
+        <span class="card__links">
+          <span class="lnk pri">HTML</span>
+          <span class="lnk">.md</span>
+        </span>
+      </a>
+
+      <a class="card" href="YourVivac — Guía del agregador de tiendas.html">
+        <span class="tag dark">Oscuro</span>
+        <span class="card__n">03 · Agregador · repo aparte</span>
+        <h2 class="card__t">Cordal — tiendas</h2>
+        <p class="card__d">El microservicio de búsquedas agregadas: scraping con Crawlee, caché hit/miss/SWR, adaptadores por tienda y matching de productos. Con diagramas.</p>
+        <span class="card__links">
+          <span class="lnk pri">HTML</span>
+          <span class="lnk">.md</span>
+        </span>
+      </a>
+
+      <a class="card" href="YourVivac — Guía de lógica, testing y workflow.html">
+        <span class="tag light">Claro</span>
+        <span class="card__n">04 · Lógica · Calidad</span>
+        <h2 class="card__t">Lógica, testing y workflow</h2>
+        <p class="card__d">Casos de uso por dominio, máquinas de estado, testing (Jest + Playwright), pipeline CI/CD y cómo contribuir. Con diagramas.</p>
+        <span class="card__links">
+          <span class="lnk pri">HTML</span>
+          <span class="lnk">.md</span>
+        </span>
+      </a>
+
+    </div>
+
+    <div class="foot">
+      <span>YourVivac · docs/ · v1.0</span>
+      <span>Diseño · Desarrollo · Agregador · Lógica &amp; Workflow</span>
+    </div>
+  </div>
+</body>
+</html>

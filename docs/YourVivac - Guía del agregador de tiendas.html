@@ -1,0 +1,521 @@
+<!doctype html>
+<html lang="es" data-theme="dark">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Cordal · Agregador de tiendas — Guía técnica</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Young+Serif&family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;0,6..72,600;1,6..72,400&family=Spline+Sans+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="yourvivac.css" />
+  <link rel="stylesheet" href="yourvivac-doc.css" />
+  <style>
+    /* Mermaid container */
+    .mermaid { background: var(--bg-2); border-radius: 16px; box-shadow: inset 0 0 0 1px var(--line); padding: 24px; margin: 16px 0; overflow-x: auto; text-align: center; }
+    .mermaid svg { max-width: 100%; height: auto; }
+    .figcap { font-family: var(--font-mono); font-size: 12px; color: var(--ink-3); letter-spacing: .04em; margin: -6px 0 22px; }
+    /* repo tag */
+    .repotag { display:inline-flex; align-items:center; gap:8px; font-family:var(--font-mono); font-size:12px; padding:5px 12px; border-radius:999px; background:color-mix(in srgb,var(--sky) 16%,transparent); color:var(--sky); box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--sky) 32%,transparent); }
+  </style>
+</head>
+<body>
+<div class="doc">
+
+  <!-- ============== TOC ============== -->
+  <nav class="toc">
+    <div class="toc__brand">
+      <span style="display:inline-flex;align-items:center;gap:10px">
+        <svg width="34" height="34" viewBox="0 0 40 40" aria-hidden="true">
+          <circle cx="20" cy="20" r="18.5" fill="none" stroke="var(--accent)" stroke-width="1.4" opacity="0.45"/>
+          <circle cx="20" cy="20" r="13" fill="none" stroke="var(--accent)" stroke-width="1.4" opacity="0.75"/>
+          <path d="M9 27 L18 12 L23 20 L26.5 15 L31 27 Z" fill="var(--accent)"/>
+        </svg>
+        <span style="font-family:var(--font-display);font-size:20px">Cordal</span>
+      </span>
+      <div class="mono" style="font-size:11px;color:var(--ink-3);margin-top:8px;letter-spacing:.04em">Agregador de tiendas · v1.0</div>
+    </div>
+
+    <div class="toc__group">Contexto</div>
+    <a href="#que">1 · Qué es y por qué va aparte</a>
+    <a href="#legal">2 · Postura legal y ética</a>
+    <a href="#stack">3 · Stack del servicio</a>
+
+    <div class="toc__group">Arquitectura</div>
+    <a href="#arquitectura">4 · Arquitectura general</a>
+    <a href="#ciclo">5 · Ciclo de una petición</a>
+    <a href="#cache">6 · Caché (hit / miss / SWR)</a>
+
+    <div class="toc__group">Scraping</div>
+    <a href="#crawlee">7 · Crawlee a fondo</a>
+    <a href="#adapters">8 · Adaptadores por tienda</a>
+    <a href="#matching">9 · Normalización y matching</a>
+    <a href="#resiliencia">10 · Resiliencia</a>
+
+    <div class="toc__group">Operación</div>
+    <a href="#endpoints">11 · Endpoints</a>
+    <a href="#deploy">12 · Despliegue y entorno</a>
+    <a href="#checklist">13 · Checklist</a>
+  </nav>
+
+  <!-- ============== MAIN ============== -->
+  <main class="main">
+
+    <header style="margin-bottom:18px">
+      <div class="eyebrow">YourVivac · Servicio independiente</div>
+      <h1>Cordal —<br>agregador de tiendas</h1>
+      <p class="lead" style="margin-top:18px;max-width:700px">
+        El motor de búsqueda agregada de material de montaña que alimenta las listas de equipo de YourVivac.
+        Consulta varias tiendas a la vez, normaliza y agrupa productos, y lo sirve con caché propia.
+      </p>
+      <div style="margin-top:16px" class="row" >
+        <span class="repotag">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M9 19c-4 1.5-4-2.5-6-3m12 5v-3.5c0-1 .1-1.4-.5-2 2.8-.3 5.5-1.4 5.5-6a4.6 4.6 0 0 0-1.3-3.2 4.3 4.3 0 0 0-.1-3.2s-1-.3-3.4 1.3a11.7 11.7 0 0 0-6 0C6.9 1.3 5.9 1.6 5.9 1.6a4.3 4.3 0 0 0-.1 3.2A4.6 4.6 0 0 0 4.5 8c0 4.6 2.7 5.7 5.5 6-.4.4-.5.9-.5 1.6V19"/></svg>
+          repo aparte · <strong>vivac-aggregator</strong>
+        </span>
+      </div>
+      <p class="mono" style="font-size:12.5px;color:var(--ink-3);margin-top:14px">«Cordal» es el nombre de trabajo del servicio (línea de cumbres de una sierra). Renómbralo libremente.</p>
+    </header>
+
+    <div class="notice notice--accent">
+      <div class="notice__icon">
+        <svg class="ic" viewBox="0 0 24 24"><path d="M4 4h16v6H4zM4 14h16v6H4z"/></svg>
+      </div>
+      <div>
+        <h4>Relación con YourVivac</h4>
+        <p>Este servicio vive en su <strong>propio repositorio</strong> (módulo core, candidato a abrirse a contribuidores)
+          pero se despliega en el <strong>mismo proyecto de Railway</strong>. La API principal de YourVivac lo consume como
+          <strong>proxy</strong> (<code>GET /products/search</code> → <code>Cordal</code>). Aquí solo se documenta el servicio.</p>
+      </div>
+    </div>
+
+    <!-- ============== 1 · QUÉ ES ============== -->
+    <section id="que">
+      <div class="eyebrow">01</div>
+      <h2>Qué es y por qué va aparte</h2>
+      <p>Cordal expone una <strong>API de consultas agregadas</strong>: dado un término (“saco de dormir -5”), busca en
+        varias tiendas (generales y especializadas de montaña), normaliza cada resultado a una forma común, agrupa las
+        ofertas del mismo producto y devuelve todo cacheado.</p>
+      <h3>Por qué un repositorio separado</h3>
+      <div class="grid g2">
+        <div class="card">
+          <h4 style="margin-top:0">Aislamiento</h4>
+          <ul style="margin:0;font-size:14.5px">
+            <li>El scraping es <strong>frágil</strong>: cambia con el HTML de cada tienda. Aislarlo evita arrastrar a la API principal.</li>
+            <li>Ciclo de vida y despliegue propios; puede escalar y caerse sin tumbar YourVivac.</li>
+            <li>Caché y cola propias (Redis), independientes del resto.</li>
+          </ul>
+        </div>
+        <div class="card">
+          <h4 style="margin-top:0">Comunidad</h4>
+          <ul style="margin:0;font-size:14.5px">
+            <li>Es un <strong>módulo core</strong> reutilizable, candidato a <strong>open source</strong>.</li>
+            <li>El patrón de <em>adapters</em> permite que contribuidores añadan tiendas sin tocar el núcleo.</li>
+            <li>Contrato de API estable hacia YourVivac aunque el interior cambie.</li>
+          </ul>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============== 2 · LEGAL ============== -->
+    <section id="legal">
+      <div class="eyebrow">02</div>
+      <h2>Postura legal y ética del scraping</h2>
+      <p>El diseño del servicio asume una práctica <strong>responsable</strong>. Resumen de los tres niveles de riesgo y
+        cómo se posiciona Cordal.</p>
+      <table>
+        <thead><tr><th>Nivel</th><th>Situación</th><th>Postura de Cordal</th></tr></thead>
+        <tbody>
+          <tr><td><strong>1 · Datos públicos</strong></td><td>Leer páginas públicas (nombre, precio, imagen, valoración).</td><td class="mono" style="color:var(--accent)">Permitido — es el modo de operación.</td></tr>
+          <tr><td><strong>2 · Términos de servicio</strong></td><td>Muchas tiendas prohíben el scraping automatizado; pueden bloquear IP/cuenta.</td><td class="mono" style="color:var(--terra)">Mitigar — preferir APIs oficiales; ritmo bajo y respetuoso.</td></tr>
+          <tr><td><strong>3 · Eludir medidas técnicas</strong></td><td>Romper CAPTCHAs, saltar anti-bot, credenciales robadas, zonas privadas.</td><td class="mono" style="color:#e06b5b">Prohibido — fuera del alcance del proyecto.</td></tr>
+        </tbody>
+      </table>
+      <div class="notice">
+        <div class="notice__icon"><svg class="ic" viewBox="0 0 24 24"><path d="M12 3 5 6v5c0 4.4 3 7.6 7 9 4-1.4 7-4.6 7-9V6z"/></svg></div>
+        <div><h4>Reglas de juego (built-in)</h4>
+          <p style="margin:0">Limitar la frecuencia por dominio · respetar <code>robots.txt</code> cuando sea razonable ·
+          no generar carga excesiva · cachear de forma agresiva para minimizar peticiones · aportar valor (comparativa, no copia) ·
+          <strong>preferir APIs oficiales</strong> de la tienda cuando existan · identificarse con un <code>User-Agent</code> honesto.</p></div>
+      </div>
+      <p><small>Esto es una guía técnica, no asesoría legal. La viabilidad depende de la jurisdicción y de los términos de
+        cada tienda; conviene revisarlos por comercio antes de activarlo en producción.</small></p>
+    </section>
+
+    <!-- ============== 3 · STACK ============== -->
+    <section id="stack">
+      <div class="eyebrow">03</div>
+      <h2>Stack del servicio</h2>
+      <table>
+        <thead><tr><th>Pieza</th><th>Elección</th><th>Por qué</th></tr></thead>
+        <tbody>
+          <tr><td>Lenguaje</td><td class="mono">TypeScript + Node</td><td>Coherencia con el resto del proyecto.</td></tr>
+          <tr><td>API</td><td class="mono">Express</td><td>Capa fina: search / product / stores / health.</td></tr>
+          <tr><td><strong>Scraping</strong></td><td class="mono">Crawlee</td><td>Framework completo: cola, autoescalado, reintentos, <code>SessionPool</code>, rotación de proxies. Envuelve Playwright y Cheerio.</td></tr>
+          <tr><td>Navegador</td><td class="mono">PlaywrightCrawler</td><td>Tiendas con render en cliente (JS): espera contenido, clics, scroll.</td></tr>
+          <tr><td>HTML estático</td><td class="mono">CheerioCrawler</td><td>Tiendas que sirven HTML ya renderizado: mucho más rápido y barato.</td></tr>
+          <tr><td>Caché</td><td class="mono">Redis (ioredis)</td><td>Resultados por consulta/tienda con TTL + stale-while-revalidate.</td></tr>
+          <tr><td>Persistencia <span style="color:var(--ink-3)">(opc.)</span></td><td class="mono">PostgreSQL o Mongo</td><td>Catálogo normalizado e histórico de precios si el proyecto crece.</td></tr>
+          <tr><td>Cola de refresco</td><td class="mono">Crawlee RequestQueue / BullMQ</td><td>Revalidación en background y crawls programados.</td></tr>
+          <tr><td>Validación</td><td class="mono">Zod</td><td>Normaliza y valida la salida de cada adapter.</td></tr>
+          <tr><td>Empaquetado</td><td class="mono">Docker</td><td>Imagen con navegadores de Playwright; desplegada en Railway.</td></tr>
+        </tbody>
+      </table>
+      <div class="notice notice--accent">
+        <div class="notice__icon"><svg class="ic" viewBox="0 0 24 24"><path d="M12 3v18M3 12h18"/></svg></div>
+        <div><h4>¿Por qué Crawlee y no Playwright a secas?</h4>
+          <p style="margin:0">Playwright abre el navegador, pero no gestiona <strong>cola, reintentos, concurrencia, sesiones ni proxies</strong>.
+          Crawlee añade todo eso encima y deja elegir motor por tienda (Cheerio para estáticas, Playwright para dinámicas) con la misma API.</p></div>
+      </div>
+    </section>
+
+    <!-- ============== 4 · ARQUITECTURA ============== -->
+    <section id="arquitectura">
+      <div class="eyebrow">04 · Arquitectura</div>
+      <h2>Arquitectura general</h2>
+      <p>La API de YourVivac nunca scrapea: delega en Cordal, que decide entre caché y scraping y devuelve una respuesta normalizada.</p>
+      <pre class="mermaid">
+flowchart LR
+  APP["YourVivac API"] -->|"GET /search (apiKey)"| GW["Cordal API · Express"]
+  GW --> CACHE{"Redis cache"}
+  CACHE -->|"hit"| GW
+  CACHE -->|"miss / stale"| ORCH["Search Orchestrator"]
+  ORCH --> QUEUE[("Crawlee RequestQueue")]
+  QUEUE --> CW["CheerioCrawler<br/>HTML estático"]
+  QUEUE --> PW["PlaywrightCrawler<br/>JS dinámico"]
+  CW --> NORM["Normalizador<br/>+ matching EAN"]
+  PW --> NORM
+  NORM --> CACHE
+  NORM --> GW
+  GW -->|"productos + ofertas"| APP
+      </pre>
+      <p class="figcap">Fig. 1 — Flujo de una búsqueda: la API principal consume Cordal; Cordal sirve de caché o lanza el scraping orquestado por Crawlee.</p>
+    </section>
+
+    <!-- ============== 5 · CICLO ============== -->
+    <section id="ciclo">
+      <div class="eyebrow">05 · Arquitectura</div>
+      <h2>Ciclo de una petición</h2>
+      <ol>
+        <li><strong>Entrada</strong> — <code>GET /search?q=&amp;stores=&amp;limit=</code> autenticado con API key interna.</li>
+        <li><strong>Clave de caché</strong> — se normaliza la query (minúsculas, sin acentos, orden de tiendas) → <code>cacheKey</code>.</li>
+        <li><strong>Decisión</strong> — según el estado de la caché: <em>hit fresca</em>, <em>hit obsoleta</em> (SWR) o <em>miss</em>.</li>
+        <li><strong>Scraping</strong> (si hace falta) — Crawlee lanza los adapters seleccionados en paralelo.</li>
+        <li><strong>Normalización + matching</strong> — forma común y agrupación por producto.</li>
+        <li><strong>Persistencia en caché</strong> — guarda con TTL y devuelve.</li>
+      </ol>
+    </section>
+
+    <!-- ============== 6 · CACHE ============== -->
+    <section id="cache">
+      <div class="eyebrow">06 · Arquitectura</div>
+      <h2>Caché — hit / miss / stale-while-revalidate</h2>
+      <p>La caché es el corazón del servicio: minimiza peticiones a las tiendas (respeto + velocidad). Se usa
+        <strong>stale-while-revalidate</strong>: si la entrada está obsoleta pero existe, se devuelve al instante y se
+        revalida en segundo plano.</p>
+      <pre class="mermaid">
+flowchart TD
+  S(["GET /search?q=..."]) --> K["Normaliza query → cacheKey"]
+  K --> C{"¿Estado en Redis?"}
+  C -->|"HIT · fresca (&lt; TTL)"| R["Devuelve cache · 200"]
+  C -->|"HIT · obsoleta (SWR)"| ST["Devuelve cache obsoleta · 200"]
+  ST -.->|"async"| RV["Encola revalidación"]
+  C -->|"MISS"| SC["Scraping paralelo · adapters"]
+  RV --> SC
+  SC --> N["Normaliza + agrupa (EAN / fingerprint)"]
+  N --> W["Guarda en Redis con TTL + timestamp"]
+  W --> R2["Devuelve resultados · 200"]
+      </pre>
+      <p class="figcap">Fig. 2 — Diagrama de actividad de la caché. La rama SWR responde rápido y refresca por detrás.</p>
+      <h3>Política de TTL (orientativa)</h3>
+      <table>
+        <thead><tr><th>Dato</th><th>TTL fresco</th><th>Ventana SWR</th></tr></thead>
+        <tbody>
+          <tr><td>Resultados de búsqueda</td><td class="mono">15–30 min</td><td class="mono">hasta 2–6 h</td></tr>
+          <tr><td>Detalle de producto / precio</td><td class="mono">30–60 min</td><td class="mono">hasta 12 h</td></tr>
+          <tr><td>Lista de tiendas / estado</td><td class="mono">varios días</td><td class="mono">—</td></tr>
+        </tbody>
+      </table>
+      <p><small>Claves sugeridas: <code>search:{hash(query+stores)}</code> · <code>product:{store}:{externalId}</code>.
+        Guardar siempre <code>fetchedAt</code> para calcular frescura.</small></p>
+    </section>
+
+    <!-- ============== 7 · CRAWLEE ============== -->
+    <section id="crawlee">
+      <div class="eyebrow">07 · Scraping</div>
+      <h2>Crawlee a fondo</h2>
+      <p>Crawlee orquesta el scraping. Funciones que aprovecha Cordal:</p>
+      <div class="libs">
+        <div class="lib"><div class="lib__name">RequestQueue</div><div class="lib__use">Cola de URLs a visitar (búsqueda → fichas), con deduplicación.</div></div>
+        <div class="lib"><div class="lib__name">AutoscaledPool</div><div class="lib__use">Ajusta la concurrencia según CPU/memoria y respuesta de la web.</div></div>
+        <div class="lib"><div class="lib__name">SessionPool</div><div class="lib__use">Rota sesiones/cookies y descarta las “quemadas” (bloqueos).</div></div>
+        <div class="lib"><div class="lib__name">ProxyConfiguration</div><div class="lib__use">Rotación de proxies por dominio para repartir carga.</div></div>
+        <div class="lib"><div class="lib__name">Reintentos + backoff</div><div class="lib__use">Reintenta fallos transitorios (429/timeout) con espera creciente.</div></div>
+        <div class="lib"><div class="lib__name">Router + handlers</div><div class="lib__use">Etiqueta peticiones (LIST / DETAIL) y enruta a su handler.</div></div>
+      </div>
+      <h3>Secuencia de un scrape</h3>
+      <pre class="mermaid">
+sequenceDiagram
+  participant O as Orchestrator
+  participant Q as Crawlee Queue
+  participant P as PlaywrightCrawler
+  participant T as Tienda
+  O->>Q: addRequests(URLs de búsqueda)
+  Q->>P: dispatch (AutoscaledPool)
+  P->>T: GET página (SessionPool + proxy)
+  alt respuesta correcta
+    T-->>P: HTML / DOM
+    P->>P: extrae productos (selectores del adapter)
+  else bloqueo o error
+    T-->>P: 429 / captcha / timeout
+    P->>P: retira sesión + retry con backoff
+  end
+  P-->>O: ProductResult[] (crudo)
+  O->>O: normaliza + agrupa
+      </pre>
+      <p class="figcap">Fig. 3 — Ciclo de vida de un scrape con Crawlee: cola, despacho autoescalado, manejo de bloqueos y entrega de resultados crudos.</p>
+    </section>
+
+    <!-- ============== 8 · ADAPTERS ============== -->
+    <section id="adapters">
+      <div class="eyebrow">08 · Scraping</div>
+      <h2>Adaptadores por tienda</h2>
+      <p>Cada tienda es un <strong>adapter</strong> autónomo que implementa una interfaz común. Añadir un comercio = añadir
+        un archivo, sin tocar el núcleo. Cada adapter declara su motor (Cheerio o Playwright) y sus selectores.</p>
+      <pre><code><span class="c">// providers/decathlon.ts</span>
+<span class="k">import</span> { StoreAdapter, ProductResult } <span class="k">from</span> <span class="t">'../core/types'</span>;
+
+<span class="k">export const</span> decathlon: StoreAdapter = {
+  key: <span class="t">'decathlon'</span>,
+  engine: <span class="t">'cheerio'</span>,        <span class="c">// o 'playwright' si renderiza en cliente</span>
+  baseUrl: <span class="t">'https://www.decathlon.es'</span>,
+  rateLimit: { perMinute: 20 },  <span class="c">// cortesía por dominio</span>
+
+  <span class="k">async</span> search(query, ctx): Promise&lt;ProductResult[]&gt; {
+    <span class="c">// 1. construye URL de búsqueda  2. ctx.$ (Cheerio) o ctx.page (Playwright)</span>
+    <span class="c">// 3. extrae name, price, image, url, ean?  4. return crudo</span>
+  },
+
+  <span class="k">async</span> getProduct(externalId, ctx): Promise&lt;ProductDetail&gt; { <span class="c">/* ficha */</span> },
+};</code></pre>
+      <h3>Tiendas objetivo (v1)</h3>
+      <div class="pillrow">
+        <span class="store" style="color:#ff9900">Amazon</span>
+        <span class="store" style="color:#3779c2">Decathlon</span>
+        <span class="store" style="color:#e2483a">Deporvillage</span>
+        <span class="store" style="color:#d8b24a">Barrabés</span>
+        <span class="store" style="color:#6aa1d8">Forum Sport</span>
+        <span class="store" style="color:#d35b4a">Coleman</span>
+      </div>
+      <p><small>Preferir la <strong>API oficial</strong> cuando la tienda la ofrezca (p. ej. Amazon Product Advertising API);
+        en ese caso el adapter usa <code>engine: 'api'</code> y no scrapea.</small></p>
+    </section>
+
+    <!-- ============== 9 · MATCHING ============== -->
+    <section id="matching">
+      <div class="eyebrow">09 · Scraping</div>
+      <h2>Normalización y matching de productos</h2>
+      <div class="notice">
+        <div class="notice__icon"><svg class="ic" viewBox="0 0 24 24"><path d="M12 9v4M12 16.5h.01"/><path d="M10.3 4.3 2.5 18a2 2 0 0 0 1.7 3h15.6a2 2 0 0 0 1.7-3L13.7 4.3a2 2 0 0 0-3.4 0Z"/></svg></div>
+        <div><h4>El verdadero reto no es el scraping</h4>
+          <p style="margin:0">Es el <strong>matching</strong>: saber que “Saco Trangoworld Winter -5” y “Trangoworld Saco de
+          dormir Winter -5ºC” son el <strong>mismo producto</strong>. El 80% del esfuerzo de un comparador está aquí.</p></div>
+      </div>
+      <pre class="mermaid">
+flowchart LR
+  IN["Resultados crudos<br/>(varias tiendas)"] --> E{"¿Tiene EAN / UPC / GTIN?"}
+  E -->|"sí"| G1["Agrupa por código"]
+  E -->|"no"| F["fingerprint(marca + modelo + specs)"]
+  F --> SIM["Similitud difusa<br/>(token-set / trigramas)"]
+  SIM --> G2["Agrupa por huella"]
+  G1 --> OUT["Producto unificado<br/>+ offers[] por tienda"]
+  G2 --> OUT
+      </pre>
+      <p class="figcap">Fig. 4 — Estrategia de agrupación: código de barras cuando existe; huella difusa cuando no.</p>
+      <h3>Pipeline</h3>
+      <ol>
+        <li><strong>Normaliza</strong> cada resultado a la forma común (<code>ProductResult</code>): nombre limpio, precio numérico + moneda, imagen, URL, tienda, EAN si aparece.</li>
+        <li><strong>Identidad fuerte</strong> — si hay <code>EAN/UPC/GTIN</code>, es la clave de agrupación fiable.</li>
+        <li><strong>Identidad débil</strong> — sin código: genera <code>fingerprint</code> (marca + modelo + atributos) y compara con similitud difusa.</li>
+        <li><strong>Agrupa</strong> en un producto con <code>offers[]</code> (una por tienda) ordenadas por precio.</li>
+      </ol>
+      <pre><code><span class="c">// Salida agrupada</span>
+{
+  product: <span class="t">"Trangoworld Saco Winter -5°C"</span>,
+  brand: <span class="t">"Trangoworld"</span>,
+  ean: <span class="t">"8433849123456"</span>,
+  image: <span class="t">"https://..."</span>,
+  offers: [
+    { store: <span class="t">"decathlon"</span>, price: 119.0, currency: <span class="t">"EUR"</span>, url: <span class="t">"..."</span> },
+    { store: <span class="t">"barrabes"</span>,  price: 129.0, currency: <span class="t">"EUR"</span>, url: <span class="t">"..."</span> }
+  ]
+}</code></pre>
+    </section>
+
+    <!-- ============== 10 · RESILIENCIA ============== -->
+    <section id="resiliencia">
+      <div class="eyebrow">10 · Scraping</div>
+      <h2>Resiliencia y monitorización</h2>
+      <p>Los scrapers <strong>se rompen</strong> cuando una tienda cambia el HTML. El diseño asume el fallo y lo aísla por tienda.</p>
+      <div class="grid g2">
+        <div class="card">
+          <h4 style="margin-top:0">Aislamiento de fallos</h4>
+          <ul style="margin:0;font-size:14.5px">
+            <li>Si un adapter falla, los demás siguen — la respuesta es parcial, no un error total.</li>
+            <li>Cada respuesta indica <code>partial: true</code> y qué tiendas fallaron.</li>
+            <li><em>Circuit breaker</em> por tienda: si falla repetidamente, se desactiva temporalmente.</li>
+          </ul>
+        </div>
+        <div class="card">
+          <h4 style="margin-top:0">Salud y alertas</h4>
+          <ul style="margin:0;font-size:14.5px">
+            <li><code>GET /stores</code> reporta estado por adapter (ok / degradado / caído).</li>
+            <li>Validación Zod: si la forma cambia, el adapter marca “esquema roto”.</li>
+            <li>Métricas: tasa de éxito, latencia y bloqueos por dominio.</li>
+          </ul>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============== 11 · ENDPOINTS ============== -->
+    <section id="endpoints">
+      <div class="eyebrow">11 · Operación</div>
+      <h2>Endpoints</h2>
+      <p>API mínima y estable. Toda petición lleva la <strong>API key interna</strong> (<code>x-api-key</code>) que comparte con YourVivac.</p>
+      <div class="epgroup">
+        <div class="ep"><span class="verb get">GET</span><span class="ep__path">/search?q=&amp;stores=&amp;limit=</span><span class="ep__desc">Búsqueda agregada (cacheada, productos agrupados)</span></div>
+        <div class="ep"><span class="verb get">GET</span><span class="ep__path">/product/:store/:externalId</span><span class="ep__desc">Detalle normalizado de un producto</span></div>
+        <div class="ep"><span class="verb get">GET</span><span class="ep__path">/stores</span><span class="ep__desc">Tiendas soportadas + estado de salud</span></div>
+        <div class="ep"><span class="verb post">POST</span><span class="ep__path">/refresh</span><span class="ep__auth admin">interno</span><span class="ep__desc">Fuerza revalidación de una query/producto</span></div>
+        <div class="ep"><span class="verb get">GET</span><span class="ep__path">/health</span><span class="ep__desc">Healthcheck (Railway)</span></div>
+      </div>
+      <h3>Forma de la respuesta de <code>/search</code></h3>
+      <pre><code>{
+  query: <span class="t">"saco -5"</span>,
+  stores: [<span class="t">"decathlon"</span>, <span class="t">"barrabes"</span>],
+  cached: <span class="k">true</span>,
+  partial: <span class="k">false</span>,
+  fetchedAt: <span class="t">"2026-06-13T08:42:00Z"</span>,
+  results: [ <span class="c">/* productos agrupados con offers[] */</span> ]
+}</code></pre>
+    </section>
+
+    <!-- ============== 12 · DEPLOY ============== -->
+    <section id="deploy">
+      <div class="eyebrow">12 · Operación</div>
+      <h2>Despliegue y entorno</h2>
+      <div class="diag">Railway (mismo proyecto que YourVivac)
+├─ cordal-api          Express + Crawlee (Docker con navegadores Playwright)
+├─ cordal-worker       revalidación de caché + crawls programados (opc.)
+└─ Redis               caché + cola (puede ser el mismo Redis del proyecto)
+
+Repo aparte: vivac-aggregator
+└─ Dockerfile basado en la imagen de Playwright (navegadores incluidos)</div>
+      <h3>Variables de entorno</h3>
+      <table class="env">
+        <tbody>
+          <tr><td>PORT</td><td>Puerto del servicio.</td></tr>
+          <tr><td>API_KEY</td><td>Clave compartida con la API de YourVivac (<code>x-api-key</code>).</td></tr>
+          <tr><td>REDIS_URL</td><td>Caché + cola.</td></tr>
+          <tr><td>DATABASE_URL</td><td>Persistencia opcional (catálogo / histórico de precios).</td></tr>
+          <tr><td>PROXY_URL / PROXY_GROUPS</td><td>Proxies para rotación (Crawlee).</td></tr>
+          <tr><td>USER_AGENT</td><td>UA honesto e identificable.</td></tr>
+          <tr><td>CACHE_TTL_SEARCH · CACHE_TTL_PRODUCT</td><td>TTL configurables.</td></tr>
+          <tr><td>MAX_CONCURRENCY</td><td>Tope del AutoscaledPool.</td></tr>
+          <tr><td>AMAZON_API_KEY · ...</td><td>Credenciales de APIs oficiales por tienda (si aplica).</td></tr>
+        </tbody>
+      </table>
+    </section>
+
+    <!-- ============== 13 · CHECKLIST ============== -->
+    <section id="checklist">
+      <div class="eyebrow">13</div>
+      <h2>Checklist del servicio</h2>
+      <div class="grid g2">
+        <div class="card">
+          <h4 style="margin-top:0">Núcleo</h4>
+          <ul style="margin:0;list-style:none;padding:0">
+            <li>☐ Repo <code>vivac-aggregator</code> + Dockerfile (Playwright).</li>
+            <li>☐ API Express: search / product / stores / health.</li>
+            <li>☐ Auth por <code>x-api-key</code>.</li>
+            <li>☐ Caché Redis con TTL + SWR.</li>
+          </ul>
+        </div>
+        <div class="card">
+          <h4 style="margin-top:0">Scraping</h4>
+          <ul style="margin:0;list-style:none;padding:0">
+            <li>☐ Crawlee: RequestQueue + AutoscaledPool + SessionPool.</li>
+            <li>☐ Interfaz <code>StoreAdapter</code> + adapters v1.</li>
+            <li>☐ Cheerio para estáticas, Playwright para dinámicas.</li>
+            <li>☐ Reintentos, backoff y rotación de proxies.</li>
+          </ul>
+        </div>
+        <div class="card">
+          <h4 style="margin-top:0">Datos</h4>
+          <ul style="margin:0;list-style:none;padding:0">
+            <li>☐ Normalización a <code>ProductResult</code> (Zod).</li>
+            <li>☐ Matching por EAN + fingerprint difuso.</li>
+            <li>☐ Agrupación en producto + <code>offers[]</code>.</li>
+          </ul>
+        </div>
+        <div class="card">
+          <h4 style="margin-top:0">Operación</h4>
+          <ul style="margin:0;list-style:none;padding:0">
+            <li>☐ Circuit breaker + respuestas parciales.</li>
+            <li>☐ <code>/stores</code> con estado de salud.</li>
+            <li>☐ Métricas y alertas por tienda.</li>
+            <li>☐ Preferir APIs oficiales donde existan.</li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="notice" style="margin-top:24px">
+        <div class="notice__icon"><svg class="ic" viewBox="0 0 24 24"><path d="M5 12.5 10 17 19 7"/></svg></div>
+        <div><h4>Siguiente documento</h4><p>La <strong>lógica de negocio + Tests/CI/CD/DevOps + E2E con Playwright + workflow de
+          contribución y despliegue</strong> irá en una guía aparte. Esta cubre el servicio agregador de extremo a extremo.</p></div>
+      </div>
+
+      <div class="foot">Cordal · Agregador de tiendas para YourVivac · v1.0 · Repo independiente · Scraping responsable</div>
+    </section>
+
+  </main>
+</div>
+
+<script type="module">
+  import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.esm.min.mjs';
+  mermaid.initialize({
+    startOnLoad: false,
+    securityLevel: 'loose',
+    theme: 'base',
+    fontFamily: 'Spline Sans Mono, ui-monospace, monospace',
+    themeVariables: {
+      background: '#141d17',
+      primaryColor: '#1c271f',
+      primaryBorderColor: '#3a4a3c',
+      primaryTextColor: '#e9ece3',
+      secondaryColor: '#243029',
+      tertiaryColor: '#141d17',
+      lineColor: '#86b75f',
+      textColor: '#c9d1c4',
+      mainBkg: '#1c271f',
+      nodeBorder: '#3a4a3c',
+      clusterBkg: '#11160f',
+      clusterBorder: '#2a3a2c',
+      edgeLabelBackground: '#141d17',
+      actorBkg: '#1c271f',
+      actorBorder: '#3a4a3c',
+      actorTextColor: '#e9ece3',
+      signalColor: '#a8d77c',
+      signalTextColor: '#c9d1c4',
+      labelBoxBkgColor: '#243029',
+      labelBoxBorderColor: '#3a4a3c',
+      noteBkgColor: '#2a2218',
+      noteTextColor: '#e7ddc6',
+      noteBorderColor: '#5a4a2c'
+    },
+    flowchart: { curve: 'basis', padding: 14, useMaxWidth: true },
+    sequence: { useMaxWidth: true, mirrorActors: false }
+  });
+  mermaid.run({ querySelector: '.mermaid' });
+</script>
+</body>
+</html>

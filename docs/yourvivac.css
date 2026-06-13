@@ -1,0 +1,306 @@
+/* ============================================================
+   YourVivac — Sistema de diseño
+   Outdoor topográfico · serif editorial · tonos tierra/bosque
+   Temas: oscuro (por defecto) + claro · densidad ajustable
+   ============================================================ */
+
+/* ---- Tipografías (pareja por defecto, conmutables vía data-type) ---- */
+:root {
+  --font-display: "Young Serif", Georgia, serif;
+  --font-body: "Newsreader", Georgia, serif;
+  --font-mono: "Spline Sans Mono", ui-monospace, "SF Mono", Menlo, monospace;
+}
+[data-type="b"] {
+  --font-display: "Newsreader", Georgia, serif;
+  --font-body: "Newsreader", Georgia, serif;
+  --font-mono: "Spline Sans Mono", ui-monospace, monospace;
+}
+[data-type="c"] {
+  --font-display: "DM Serif Display", Georgia, serif;
+  --font-body: "Newsreader", Georgia, serif;
+  --font-mono: "Spline Sans Mono", ui-monospace, monospace;
+}
+
+/* ---- Densidad ---- */
+:root { --d: 1; }            /* regular */
+[data-density="compact"] { --d: 0.82; }
+[data-density="comfy"]   { --d: 1.18; }
+
+/* ---- Tema oscuro (por defecto) ---- */
+:root,
+[data-theme="dark"] {
+  --bg:      #0e1411;
+  --bg-2:    #141d17;
+  --bg-3:    #1c271f;
+  --bg-4:    #243029;
+  --ink:     #e9ece3;
+  --ink-2:   #a9b4a6;
+  --ink-3:   #76836f;
+  --line:    rgba(180,205,180,0.13);
+  --line-2:  rgba(180,205,180,0.22);
+  --accent:  #a8d77c;       /* salvia / lima */
+  --accent-2:#86b75f;
+  --accent-ink:#11160f;     /* texto sobre acento */
+  --terra:   #d68a57;       /* terracota — rol guía, destacados */
+  --terra-2: #b06a3c;
+  --sky:     #79b8c4;       /* azul agua para mapas/links */
+  --paper:   #e7ddc6;       /* nota de papel sobre el tablero */
+  --paper-ink:#2c2519;
+  --board:   #232c22;       /* fieltro del tablero */
+  --board-line: rgba(168,215,124,0.10);
+  --shadow:  0 2px 4px rgba(0,0,0,.35), 0 12px 34px rgba(0,0,0,.34);
+  --shadow-sm: 0 1px 2px rgba(0,0,0,.35), 0 4px 14px rgba(0,0,0,.28);
+  --topo:    rgba(168,215,124,0.07);
+}
+
+/* ---- Tema claro ---- */
+[data-theme="light"] {
+  --bg:      #ece5d6;
+  --bg-2:    #f4eee2;
+  --bg-3:    #fbf7ee;
+  --bg-4:    #ffffff;
+  --ink:     #1d241d;
+  --ink-2:   #515a4c;
+  --ink-3:   #8a9082;
+  --line:    rgba(40,52,35,0.14);
+  --line-2:  rgba(40,52,35,0.24);
+  --accent:  #3f7a4d;
+  --accent-2:#326140;
+  --accent-ink:#f7f4ea;
+  --terra:   #b96e3c;
+  --terra-2: #9a5829;
+  --sky:     #3d7d8c;
+  --paper:   #f2ead4;
+  --paper-ink:#3a3120;
+  --board:   #d9cdb0;       /* corcho/kraft */
+  --board-line: rgba(90,70,40,0.12);
+  --shadow:  0 2px 4px rgba(60,48,28,.10), 0 14px 36px rgba(60,48,28,.13);
+  --shadow-sm: 0 1px 2px rgba(60,48,28,.10), 0 5px 16px rgba(60,48,28,.10);
+  --topo:    rgba(80,62,34,0.08);
+}
+
+/* ============================================================
+   Base
+   ============================================================ */
+.yv {
+  font-family: var(--font-body);
+  color: var(--ink);
+  background: var(--bg);
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+  font-feature-settings: "kern" 1, "liga" 1;
+  line-height: 1.45;
+}
+.yv *, .yv *::before, .yv *::after { box-sizing: border-box; }
+.yv h1,.yv h2,.yv h3,.yv h4 { font-family: var(--font-display); font-weight: 400; line-height: 1.02; margin: 0; letter-spacing: -0.01em; }
+.yv p { margin: 0; }
+.yv button { font-family: inherit; cursor: pointer; }
+
+/* mono helpers — datos técnicos: altitud, coords, distancia, tiendas */
+.mono { font-family: var(--font-mono); font-feature-settings: "tnum" 1; }
+.eyebrow {
+  font-family: var(--font-mono);
+  font-size: calc(11px * var(--d));
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--ink-3);
+}
+.accent { color: var(--accent); }
+.terra  { color: var(--terra); }
+
+/* ---- Topografía: anillos de nivel como textura ambiente ---- */
+.topo-bg {
+  position: absolute; inset: 0; pointer-events: none; overflow: hidden;
+  background-image:
+    repeating-radial-gradient(circle at 22% 18%, transparent 0 20px, var(--topo) 20px 21px),
+    repeating-radial-gradient(circle at 88% 72%, transparent 0 26px, var(--topo) 26px 27px);
+}
+.topo-strip {
+  background-image: repeating-radial-gradient(circle at 30% 120%, transparent 0 14px, var(--topo) 14px 15px);
+}
+
+/* ---- Marcador de imagen (placeholder rayado con etiqueta mono) ---- */
+.imgslot {
+  position: relative; overflow: hidden;
+  background-color: var(--bg-3);
+  background-image: repeating-linear-gradient(135deg,
+     var(--line) 0 1px, transparent 1px 11px);
+  display: flex; align-items: flex-end;
+}
+.imgslot.topo {
+  background-image:
+     repeating-radial-gradient(circle at 35% 30%, transparent 0 16px, var(--topo) 16px 17px),
+     repeating-radial-gradient(circle at 80% 85%, transparent 0 22px, var(--topo) 22px 23px);
+  background-color: var(--bg-2);
+}
+.imgslot__tag {
+  font-family: var(--font-mono);
+  font-size: 10px; letter-spacing: .1em; text-transform: uppercase;
+  color: var(--ink-3); background: color-mix(in srgb, var(--bg) 72%, transparent);
+  padding: 3px 7px; margin: 8px; border-radius: 3px; backdrop-filter: blur(2px);
+}
+
+/* ---- Avatares (iniciales sobre disco) ---- */
+.av {
+  border-radius: 50%; display: grid; place-items: center;
+  font-family: var(--font-mono); font-weight: 500; color: var(--accent-ink);
+  background: var(--accent); flex: none; letter-spacing: .02em;
+  box-shadow: inset 0 0 0 1px rgba(0,0,0,.08);
+}
+.av.t { background: var(--terra); }
+.av.s { background: var(--sky); }
+.av.ring { box-shadow: 0 0 0 2px var(--bg), 0 0 0 3px var(--line-2); }
+
+/* ---- Botones ---- */
+.btn {
+  display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+  font-family: var(--font-body); font-size: calc(15px * var(--d));
+  border: none; border-radius: 999px; padding: calc(11px * var(--d)) calc(20px * var(--d));
+  background: var(--accent); color: var(--accent-ink); font-weight: 600;
+  transition: transform .12s, filter .12s; white-space: nowrap;
+}
+.btn:hover { filter: brightness(1.05); }
+.btn:active { transform: translateY(1px); }
+.btn--ghost { background: transparent; color: var(--ink); box-shadow: inset 0 0 0 1px var(--line-2); }
+.btn--terra { background: var(--terra); color: #1c130a; }
+.btn--block { display: flex; width: 100%; }
+.btn--lg { font-size: calc(16px * var(--d)); padding: calc(14px * var(--d)) calc(24px * var(--d)); }
+
+/* ---- Chips / etiquetas ---- */
+.chip {
+  display: inline-flex; align-items: center; gap: 6px;
+  font-family: var(--font-mono); font-size: calc(11px * var(--d));
+  letter-spacing: .03em; padding: 4px 10px; border-radius: 999px;
+  background: var(--bg-3); color: var(--ink-2); box-shadow: inset 0 0 0 1px var(--line);
+}
+.chip--accent { background: color-mix(in srgb, var(--accent) 18%, transparent); color: var(--accent); box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--accent) 30%, transparent); }
+.chip--terra  { background: color-mix(in srgb, var(--terra) 18%, transparent); color: var(--terra); box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--terra) 32%, transparent); }
+.chip--guide  { background: var(--terra); color: #20140a; box-shadow: none; font-weight: 600; }
+
+/* ---- Tarjetas ---- */
+.card {
+  background: var(--bg-2); border-radius: calc(18px * var(--d));
+  box-shadow: inset 0 0 0 1px var(--line);
+}
+
+/* ---- Divisores ---- */
+.hr { height: 1px; background: var(--line); border: 0; margin: 0; }
+
+/* ============================================================
+   Teléfono — carcasa de dispositivo
+   ============================================================ */
+.phone {
+  position: relative; width: 100%; height: 100%;
+  background: var(--bg); overflow: hidden;
+  display: flex; flex-direction: column;
+}
+.phone__status {
+  height: 50px; flex: none; display: flex; align-items: center; justify-content: space-between;
+  padding: 0 26px 0 30px; font-family: var(--font-mono); font-size: 14px; font-weight: 500;
+  color: var(--ink); position: relative; z-index: 3;
+}
+.phone__status .dots { display: flex; align-items: center; gap: 5px; }
+.phone__status .bar { width: 3px; border-radius: 1px; background: var(--ink); }
+.phone__body { flex: 1 1 auto; position: relative; overflow: hidden; }
+.phone__home {
+  height: 26px; flex: none; display: grid; place-items: center; z-index: 3;
+}
+.phone__home::after { content: ""; width: 128px; height: 5px; border-radius: 3px; background: var(--ink); opacity: .55; }
+
+/* barra de pestañas inferior */
+.tabbar {
+  display: flex; align-items: center; justify-content: space-around;
+  padding: 10px 8px 4px; background: var(--bg-2); box-shadow: inset 0 1px 0 var(--line);
+}
+.tab { display: flex; flex-direction: column; align-items: center; gap: 4px; color: var(--ink-3); flex: 1; }
+.tab .t { font-family: var(--font-mono); font-size: 9.5px; letter-spacing: .04em; }
+.tab.is-active { color: var(--accent); }
+
+/* scroll fake (solo visual dentro del artboard) */
+.screen { position: absolute; inset: 0; display: flex; flex-direction: column; }
+.screen__scroll { flex: 1 1 auto; overflow: hidden; }
+
+/* ---- Iconos lineales mínimos ---- */
+.ic { width: 22px; height: 22px; display: inline-block; stroke: currentColor; fill: none; stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; }
+.ic.sm { width: 18px; height: 18px; }
+.ic.lg { width: 26px; height: 26px; }
+
+/* ============================================================
+   Tablero — fieltro/corcho con pines
+   ============================================================ */
+.board {
+  position: absolute; inset: 0; overflow: hidden;
+  background: var(--board);
+  background-image:
+    repeating-radial-gradient(circle at 18% 22%, transparent 0 24px, var(--board-line) 24px 25px),
+    repeating-radial-gradient(circle at 82% 78%, transparent 0 30px, var(--board-line) 30px 31px);
+}
+.pin {
+  position: absolute; background: var(--bg-2); border-radius: 10px;
+  box-shadow: var(--shadow); width: 200px;
+}
+.pin__tack {
+  position: absolute; top: -7px; left: 50%; transform: translateX(-50%);
+  width: 14px; height: 14px; border-radius: 50%;
+  background: radial-gradient(circle at 35% 30%, #fff6, var(--terra) 60%, var(--terra-2));
+  box-shadow: 0 2px 5px rgba(0,0,0,.4); z-index: 2;
+}
+.pin__tack.green { background: radial-gradient(circle at 35% 30%, #fff6, var(--accent) 60%, var(--accent-2)); }
+.pin__tack.sky   { background: radial-gradient(circle at 35% 30%, #fff6, var(--sky) 60%, #4f8a97); }
+.pin__head {
+  display: flex; align-items: center; gap: 7px; padding: 9px 12px 0;
+  font-family: var(--font-mono); font-size: 10px; letter-spacing: .08em;
+  text-transform: uppercase; color: var(--ink-3);
+}
+.pin__body { padding: 8px 12px 12px; }
+.pin--paper { background: var(--paper); color: var(--paper-ink); }
+.pin--paper .pin__head { color: color-mix(in srgb, var(--paper-ink) 55%, transparent); }
+
+/* nota de papel (handwritten-ish con serif) */
+.note-md p { margin: 0 0 6px; }
+.note-md h4 { font-family: var(--font-display); font-size: 16px; margin: 0 0 5px; }
+.note-md ul { margin: 4px 0; padding-left: 18px; }
+.note-md li { margin: 2px 0; }
+.note-md code { font-family: var(--font-mono); font-size: .85em; background: rgba(0,0,0,.07); padding: 1px 4px; border-radius: 3px; }
+.note-md a { color: var(--terra-2); text-decoration: underline; text-underline-offset: 2px; }
+
+/* ---- Lista de equipo (gear list) ---- */
+.gear-row { display: flex; align-items: center; gap: 10px; padding: 7px 0; }
+.gear-check { width: 18px; height: 18px; border-radius: 5px; box-shadow: inset 0 0 0 1.5px var(--line-2); flex: none; display: grid; place-items: center; }
+.gear-check.on { background: var(--accent); box-shadow: none; }
+.store {
+  font-family: var(--font-mono); font-size: 10px; letter-spacing: .02em;
+  padding: 2px 7px; border-radius: 4px; white-space: nowrap;
+  box-shadow: inset 0 0 0 1px var(--line);
+}
+.store--amazon  { color: #ff9900; }
+.store--decath  { color: #3779c2; }
+.store--deporv  { color: #e2483a; }
+.store--barrabes{ color: #d8b24a; }
+.store--forum   { color: #6aa1d8; }
+.store--coleman { color: #d35b4a; }
+
+/* ---- Mapa pin ---- */
+.map {
+  position: relative; overflow: hidden; border-radius: 8px;
+  background: var(--bg-3);
+  background-image:
+    repeating-radial-gradient(circle at 60% 45%, transparent 0 13px, color-mix(in srgb, var(--sky) 32%, transparent) 13px 14px),
+    repeating-linear-gradient(90deg, var(--line) 0 1px, transparent 1px 34px),
+    repeating-linear-gradient(0deg, var(--line) 0 1px, transparent 1px 34px);
+}
+.map__pin {
+  position: absolute; top: 45%; left: 60%; transform: translate(-50%,-100%);
+  width: 22px; height: 22px;
+}
+.map__route { position: absolute; inset: 0; }
+
+/* utilidades */
+.stack { display: flex; flex-direction: column; }
+.row { display: flex; align-items: center; }
+.spread { display: flex; align-items: center; justify-content: space-between; }
+.wrap { flex-wrap: wrap; }
+.gap4{gap:4px}.gap6{gap:6px}.gap8{gap:8px}.gap10{gap:10px}.gap12{gap:12px}.gap14{gap:14px}.gap16{gap:16px}.gap20{gap:20px}.gap24{gap:24px}
+.grow{flex:1 1 auto}.none{flex:none}
+.muted{color:var(--ink-2)}.faint{color:var(--ink-3)}
+.tnum{font-variant-numeric:tabular-nums}
