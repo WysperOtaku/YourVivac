@@ -76,7 +76,7 @@ export function startWorkers(): Worker[] {
   return workers;
 }
 
-// Entrypoint del servicio de workers.
-if (process.argv[1] && /workers[\\/]index\.ts$/.test(process.argv[1])) {
+// Entrypoint del servicio de workers (tanto en dev `.ts` como en build `.js`).
+if (process.argv[1] && /workers[\\/]index\.(ts|js)$/.test(process.argv[1])) {
   startWorkers();
 }

@@ -6,7 +6,9 @@
   "main": "dist/server.js",
   "scripts": {
     "dev": "tsx watch src/server.ts",
+    "dev:workers": "tsx watch src/workers/index.ts",
     "start": "node dist/server.js",
+    "start:workers": "node dist/workers/index.js",
     "build": "tsup",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
