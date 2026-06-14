@@ -1,7 +1,20 @@
 import { Router } from 'express';
-import { authGuard, notImplemented } from '../../middleware/index.js';
+import { authGuard, asyncHandler } from '../../middleware/index.js';
+import { notificationsService } from './notifications.service.js';
 
-// Worker (notifications & media): implementa notifications.service.ts + media.
 export const notificationsRouter = Router();
-notificationsRouter.get('/', authGuard, notImplemented('notifications.list'));
-notificationsRouter.post('/read-all', authGuard, notImplemented('notifications.readAll'));
+notificationsRouter.get(
+  '/',
+  authGuard,
+  asyncHandler(async (req, res) => {
+    res.json(await notificationsService.list(req.user!.userId));
+  }),
+);
+notificationsRouter.post(
+  '/read-all',
+  authGuard,
+  asyncHandler(async (req, res) => {
+    await notificationsService.readAll(req.user!.userId);
+    res.status(204).end();
+  }),
+);

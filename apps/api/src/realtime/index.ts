@@ -33,9 +33,21 @@ export function initRealtime(server: HttpServer): SocketServer {
   io.on('connection', (socket) => {
     logger.debug({ userId: socket.data.userId }, 'socket conectado');
 
-    socket.on('trip:join', (tripId: string) => {
-      // TODO(worker realtime): verifica pertenencia antes de unir a la sala.
-      socket.join(`trip:${tripId}`);
+    socket.on('trip:join', async (tripId: string) => {
+      // Verifica pertenencia antes de unir a la sala del trip.
+      try {
+        const { TripModel } = await import('../models/trip.model.js');
+        const trip = await TripModel.findById(tripId).select('members');
+        const isMember = trip?.members.some((m) => String(m.userId) === socket.data.userId);
+        if (isMember) {
+          socket.join(`trip:${tripId}`);
+          socket.emit('trip:joined', { tripId });
+        } else {
+          socket.emit('trip:denied', { tripId });
+        }
+      } catch {
+        socket.emit('trip:denied', { tripId });
+      }
     });
 
     socket.on('trip:leave', (tripId: string) => socket.leave(`trip:${tripId}`));
