@@ -1,9 +1,22 @@
 import { Router } from 'express';
 import { guideApplySchema } from '@yourvivac/validation';
-import { authGuard, validate, notImplemented } from '../../middleware/index.js';
+import { authGuard, validate, asyncHandler } from '../../middleware/index.js';
+import { guideService } from './guide.service.js';
 
-// Worker (guide): implementa guide.service.ts (UC-U2 solicitar guía).
 export const guideRouter = Router();
 
-guideRouter.post('/apply', authGuard, validate(guideApplySchema), notImplemented('guide.apply'));
-guideRouter.get('/application', authGuard, notImplemented('guide.application'));
+guideRouter.post(
+  '/apply',
+  authGuard,
+  validate(guideApplySchema),
+  asyncHandler(async (req, res) => {
+    res.status(201).json(await guideService.apply(req.user!.userId, req.body));
+  }),
+);
+guideRouter.get(
+  '/application',
+  authGuard,
+  asyncHandler(async (req, res) => {
+    res.json(await guideService.myApplication(req.user!.userId));
+  }),
+);
