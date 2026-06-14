@@ -1,21 +1,17 @@
 import { cn } from '@/lib/cn';
 
-type Tone = 'accent' | 'terra' | 'sky';
+type Tone = '' | 't' | 's';
 
 interface Props {
   name: string;
   src?: string;
   size?: number;
+  /** '' = accent (verde), 't' = terra, 's' = sky (mismo criterio que el diseño). */
   tone?: Tone;
   ring?: boolean;
   className?: string;
+  style?: React.CSSProperties;
 }
-
-const toneBg: Record<Tone, string> = {
-  accent: 'bg-accent',
-  terra: 'bg-terra',
-  sky: 'bg-sky',
-};
 
 function initials(name: string): string {
   return name
@@ -25,22 +21,13 @@ function initials(name: string): string {
     .join('');
 }
 
-export function Avatar({ name, src, size = 40, tone = 'accent', ring, className }: Props) {
+export function Avatar({ name, src, size = 38, tone = '', ring, className, style }: Props) {
   return (
     <div
-      className={cn(
-        'grid place-items-center rounded-full font-mono font-medium text-accent-ink overflow-hidden flex-none',
-        toneBg[tone],
-        ring && 'ring-2 ring-bg',
-        className,
-      )}
-      style={{ width: size, height: size, fontSize: size * 0.4 }}
+      className={cn('av', tone, ring && 'ring', className)}
+      style={{ width: size, height: size, fontSize: size * 0.38, ...style }}
     >
-      {src ? (
-        <img src={src} alt={name} className="h-full w-full object-cover" />
-      ) : (
-        initials(name)
-      )}
+      {src ? <img src={src} alt={name} className="h-full w-full object-cover" /> : initials(name) || '·'}
     </div>
   );
 }

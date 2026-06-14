@@ -1,5 +1,6 @@
 /* Tokens de tema (variables CSS) + utilidades base de Tailwind. */
 @import '@yourvivac/tailwind-preset/tokens.css';
+@import './styles/yv.css';
 
 @tailwind base;
 @tailwind components;
