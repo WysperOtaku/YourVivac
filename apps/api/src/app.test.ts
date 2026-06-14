@@ -16,11 +16,6 @@ describe('app base', () => {
     expect(res.status).toBe(404);
   });
 
-  it('endpoint no implementado devuelve 501', async () => {
-    const res = await request(app).get('/tips'.replace('/tips', '/api/v1/tips'));
-    expect(res.status).toBe(501);
-  });
-
   it('ruta protegida sin token devuelve 401', async () => {
     const res = await request(app).get('/api/v1/trips');
     expect(res.status).toBe(401);

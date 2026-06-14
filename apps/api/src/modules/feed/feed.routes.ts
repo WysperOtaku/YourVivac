@@ -1,6 +1,14 @@
 import { Router } from 'express';
-import { authGuard, notImplemented } from '../../middleware/index.js';
+import { authGuard, asyncHandler } from '../../middleware/index.js';
+import { feedService } from './feed.service.js';
 
-// Worker (trips o un worker de feed): implementa feed.service.ts (UC-H1 feed de inicio).
 export const feedRouter = Router();
-feedRouter.get('/', authGuard, notImplemented('feed.home'));
+feedRouter.get(
+  '/',
+  authGuard,
+  asyncHandler(async (req, res) => {
+    const page = req.query.page ? Number(req.query.page) : 1;
+    const pageSize = req.query.pageSize ? Number(req.query.pageSize) : 20;
+    res.json(await feedService.home(req.user!.userId, page, pageSize));
+  }),
+);
