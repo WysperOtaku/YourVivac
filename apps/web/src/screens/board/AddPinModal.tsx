@@ -6,6 +6,9 @@ import { Field, Icon, Modal } from '@/ui';
 import { api } from '@/lib/api';
 import { errMsg } from '@/lib/errMsg';
 import { uploadImage } from '@/lib/upload';
+import { isMapsConfigured, type LatLng } from '@/lib/maps';
+import { TopoMap } from '@/components/maps/TopoMap';
+import { LocationSearch } from '@/components/maps/LocationSearch';
 
 const TYPES: { key: PinType; label: string; icon: 'note' | 'image' | 'link' | 'list' | 'pin' }[] = [
   { key: 'note', label: 'Nota', icon: 'note' },
@@ -41,6 +44,7 @@ export function AddPinModal({ open, onClose, tripId }: { open: boolean; onClose:
   const [mapLabel, setMapLabel] = useState('');
   const [lat, setLat] = useState('42.63');
   const [lng, setLng] = useState('0.65');
+  const [routePath, setRoutePath] = useState<LatLng[]>([]);
   const [photoMedia, setPhotoMedia] = useState<{ url: string; publicId: string } | null>(null);
   const [gearListId, setGearListId] = useState('');
 
@@ -51,6 +55,7 @@ export function AddPinModal({ open, onClose, tripId }: { open: boolean; onClose:
     setTextBody('');
     setUrl('');
     setMapLabel('');
+    setRoutePath([]);
     setPhotoMedia(null);
     setGearListId('');
   }
@@ -74,7 +79,15 @@ export function AddPinModal({ open, onClose, tripId }: { open: boolean; onClose:
           payload = { type, layout, link: { url } };
           break;
         case 'map':
-          payload = { type, layout, map: { label: mapLabel, coords: { lat: Number(lat), lng: Number(lng) } } };
+          payload = {
+            type,
+            layout,
+            map: {
+              label: mapLabel,
+              coords: { lat: Number(lat), lng: Number(lng) },
+              ...(routePath.length > 1 ? { path: routePath } : {}),
+            },
+          };
           break;
         case 'list':
           if (!gearListId) throw new Error('Elige una lista');
@@ -168,11 +181,53 @@ export function AddPinModal({ open, onClose, tripId }: { open: boolean; onClose:
 
         {type === 'map' && (
           <>
-            <Field label="Etiqueta" placeholder="Pico Aneto" value={mapLabel} onChange={(e) => setMapLabel(e.target.value)} />
-            <div className="row gap12">
-              <div className="grow"><Field label="Latitud" value={lat} onChange={(e) => setLat(e.target.value)} /></div>
-              <div className="grow"><Field label="Longitud" value={lng} onChange={(e) => setLng(e.target.value)} /></div>
-            </div>
+            {isMapsConfigured ? (
+              <>
+                <label className="stack gap6">
+                  <span className="eyebrow">Buscar ubicación</span>
+                  <LocationSearch
+                    placeholder="Pico Aneto, refugio…"
+                    onPick={(p) => {
+                      setMapLabel(p.name);
+                      setLat(String(p.coords.lat));
+                      setLng(String(p.coords.lng));
+                    }}
+                  />
+                </label>
+                <Field label="Etiqueta" placeholder="Pico Aneto" value={mapLabel} onChange={(e) => setMapLabel(e.target.value)} />
+                <div className="stack gap6">
+                  <div className="spread">
+                    <span className="eyebrow">Dibuja la ruta (toca el mapa)</span>
+                    <span className="row gap8">
+                      <button type="button" className="chip cursor-pointer" onClick={() => setRoutePath((p) => p.slice(0, -1))}>
+                        Deshacer
+                      </button>
+                      <button type="button" className="chip cursor-pointer" onClick={() => setRoutePath([])}>
+                        Borrar
+                      </button>
+                    </span>
+                  </div>
+                  <TopoMap
+                    key={`${lat},${lng}`}
+                    interactive
+                    center={{ lat: Number(lat), lng: Number(lng) }}
+                    marker={{ lat: Number(lat), lng: Number(lng) }}
+                    path={routePath}
+                    onClick={(c) => setRoutePath((p) => [...p, c])}
+                    className="h-56 overflow-hidden rounded-card"
+                  />
+                  <span className="faint mono text-[11px]">{routePath.length} puntos en la ruta</span>
+                </div>
+              </>
+            ) : (
+              <>
+                <Field label="Etiqueta" placeholder="Pico Aneto" value={mapLabel} onChange={(e) => setMapLabel(e.target.value)} />
+                <div className="row gap12">
+                  <div className="grow"><Field label="Latitud" value={lat} onChange={(e) => setLat(e.target.value)} /></div>
+                  <div className="grow"><Field label="Longitud" value={lng} onChange={(e) => setLng(e.target.value)} /></div>
+                </div>
+              </>
+            )}
           </>
         )}
 

@@ -33,6 +33,7 @@ export const createPinSchema = z.discriminatedUnion('type', [
       coords,
       placeId: z.string().optional(),
       address: z.string().optional(),
+      path: z.array(coords).max(1000).optional(),
     }),
   }),
   z.object({ ...base, type: z.literal('list'), list: z.object({ gearListId: objectId }) }),

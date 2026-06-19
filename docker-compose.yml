@@ -44,10 +44,16 @@ services:
       JWT_ACCESS_SECRET: dev-access-secret-change-me
       JWT_REFRESH_SECRET: dev-refresh-secret-change-me
       CORS_ORIGINS: http://localhost:8080,http://localhost:5173
-      # Opcionales (déjalos vacíos en local salvo que los pruebes):
-      # FIREBASE_PROJECT_ID, FIREBASE_CLIENT_EMAIL, FIREBASE_PRIVATE_KEY
-      # CLOUDINARY_CLOUD_NAME, CLOUDINARY_API_KEY, CLOUDINARY_API_SECRET
-      # SMTP_HOST, SMTP_PORT, SMTP_USER, SMTP_PASS  /  STORE_SERVICE_URL, STORE_SERVICE_API_KEY
+      # Servicios externos (se toman del entorno del host / .env junto al compose).
+      # Firebase Admin verifica el idToken de Google Sign-In.
+      FIREBASE_PROJECT_ID: ${FIREBASE_PROJECT_ID:-}
+      FIREBASE_CLIENT_EMAIL: ${FIREBASE_CLIENT_EMAIL:-}
+      FIREBASE_PRIVATE_KEY: ${FIREBASE_PRIVATE_KEY:-}
+      CLOUDINARY_CLOUD_NAME: ${CLOUDINARY_CLOUD_NAME:-}
+      CLOUDINARY_API_KEY: ${CLOUDINARY_API_KEY:-}
+      CLOUDINARY_API_SECRET: ${CLOUDINARY_API_SECRET:-}
+      STORE_SERVICE_URL: ${STORE_SERVICE_URL:-}
+      STORE_SERVICE_API_KEY: ${STORE_SERVICE_API_KEY:-}
     depends_on:
       mongo:
         condition: service_healthy
@@ -87,6 +93,12 @@ services:
       dockerfile: apps/web/Dockerfile
       args:
         VITE_API_URL: http://localhost:4000/api/v1
+        # Se toman del entorno del host (o de un .env junto al compose).
+        VITE_FIREBASE_API_KEY: ${VITE_FIREBASE_API_KEY:-}
+        VITE_FIREBASE_AUTH_DOMAIN: ${VITE_FIREBASE_AUTH_DOMAIN:-}
+        VITE_FIREBASE_PROJECT_ID: ${VITE_FIREBASE_PROJECT_ID:-}
+        VITE_FIREBASE_APP_ID: ${VITE_FIREBASE_APP_ID:-}
+        VITE_GOOGLE_MAPS_API_KEY: ${VITE_GOOGLE_MAPS_API_KEY:-}
     restart: unless-stopped
     ports:
       - '8080:8080'

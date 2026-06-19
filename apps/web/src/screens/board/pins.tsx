@@ -4,6 +4,8 @@ import remarkGfm from 'remark-gfm';
 import rehypeSanitize from 'rehype-sanitize';
 import type { Pin } from '@yourvivac/types';
 import { Avatar, Icon } from '@/ui';
+import { isMapsConfigured } from '@/lib/maps';
+import { TopoMap } from '@/components/maps/TopoMap';
 
 interface PinViewProps {
   pin: Pin;
@@ -121,11 +123,21 @@ export function PinView({ pin, authorName, canEdit, onDelete, onReact, meId, sty
         <>
           <Head icon="pin" label="Ubicación" author={authorName} onDelete={onDelete} canEdit={canEdit} />
           <div className="pin__body">
-            <div className="map h-24">
-              <div className="map__pin">
-                <Icon name="pin" size={22} className="text-terra" />
+            {isMapsConfigured ? (
+              <TopoMap
+                center={pin.map.coords}
+                zoom={12}
+                marker={pin.map.coords}
+                path={pin.map.path}
+                className="h-28 overflow-hidden rounded-md"
+              />
+            ) : (
+              <div className="map h-24">
+                <div className="map__pin">
+                  <Icon name="pin" size={22} className="text-terra" />
+                </div>
               </div>
-            </div>
+            )}
             <div className="mt-1.5 font-display text-sm">{pin.map.label}</div>
             <a
               className="faint mono mt-0.5 block text-[10px] underline"

@@ -8,6 +8,8 @@ import { AppShell } from '@/components/AppShell';
 import { Icon } from '@/ui';
 import { api } from '@/lib/api';
 import { errMsg } from '@/lib/errMsg';
+import { isMapsConfigured } from '@/lib/maps';
+import { LocationSearch } from '@/components/maps/LocationSearch';
 
 const DIFFS: { key: TripDifficulty; label: string }[] = [
   { key: 'facil', label: 'Fácil' },
@@ -112,20 +114,38 @@ export function CreateTripScreen() {
           </div>
         </div>
         <Field label="Lugar / punto de inicio">
-          <input className={inputCls} placeholder="Refugio de la Renclusa, Benasque" value={place} onChange={(e) => setPlace(e.target.value)} />
+          {isMapsConfigured ? (
+            <>
+              <LocationSearch
+                className={inputCls}
+                defaultValue={place}
+                placeholder="Refugio de la Renclusa, Benasque"
+                onPick={(p) => {
+                  setPlace(p.name);
+                  setLat(String(p.coords.lat));
+                  setLng(String(p.coords.lng));
+                }}
+              />
+              {place && <span className="faint mono mt-1 block text-[11px]">{place} · {Number(lat).toFixed(4)}, {Number(lng).toFixed(4)}</span>}
+            </>
+          ) : (
+            <input className={inputCls} placeholder="Refugio de la Renclusa, Benasque" value={place} onChange={(e) => setPlace(e.target.value)} />
+          )}
         </Field>
-        <div className="row gap12">
-          <div className="grow">
-            <Field label="Latitud">
-              <input className={`${inputCls} mono`} value={lat} onChange={(e) => setLat(e.target.value)} />
-            </Field>
+        {!isMapsConfigured && (
+          <div className="row gap12">
+            <div className="grow">
+              <Field label="Latitud">
+                <input className={`${inputCls} mono`} value={lat} onChange={(e) => setLat(e.target.value)} />
+              </Field>
+            </div>
+            <div className="grow">
+              <Field label="Longitud">
+                <input className={`${inputCls} mono`} value={lng} onChange={(e) => setLng(e.target.value)} />
+              </Field>
+            </div>
           </div>
-          <div className="grow">
-            <Field label="Longitud">
-              <input className={`${inputCls} mono`} value={lng} onChange={(e) => setLng(e.target.value)} />
-            </Field>
-          </div>
-        </div>
+        )}
         <Field label="Dificultad">
           <div className="row gap8 flex-wrap">
             {DIFFS.map((d) => (

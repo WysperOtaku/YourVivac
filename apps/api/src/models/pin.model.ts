@@ -32,6 +32,7 @@ const pinSchema = new Schema(
         placeId: String,
         address: String,
         elevation: Number,
+        path: [{ _id: false, lat: Number, lng: Number }],
       },
       { _id: false },
     ),

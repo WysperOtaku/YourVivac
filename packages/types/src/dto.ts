@@ -113,7 +113,7 @@ export interface CreatePinRequest {
   text?: { body: string; color: string };
   photo?: { media: MediaRef; caption?: string };
   link?: { url: string };
-  map?: { label: string; coords: GeoCoords; placeId?: string; address?: string };
+  map?: { label: string; coords: GeoCoords; placeId?: string; address?: string; path?: GeoCoords[] };
   list?: { gearListId: Id };
 }
 export interface UpdatePinRequest {

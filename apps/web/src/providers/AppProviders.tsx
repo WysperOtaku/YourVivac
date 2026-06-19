@@ -1,8 +1,10 @@
 import { useEffect, type ReactNode } from 'react';
 import { QueryClientProvider } from '@tanstack/react-query';
 import { BrowserRouter, useNavigate } from 'react-router-dom';
+import { APIProvider } from '@vis.gl/react-google-maps';
 import { Toaster } from 'sonner';
 import { queryClient } from '@/lib/queryClient';
+import { MAPS_API_KEY, isMapsConfigured } from '@/lib/maps';
 import { useAuthStore } from '@/stores/authStore';
 import { useUiStore } from '@/stores/uiStore';
 
@@ -49,12 +51,15 @@ function Bootstrap({ children }: { children: ReactNode }) {
 }
 
 export function AppProviders({ children }: { children: ReactNode }) {
+  const tree = (
+    <BrowserRouter>
+      <Bootstrap>{children}</Bootstrap>
+      <Toaster position="top-center" theme="dark" richColors />
+    </BrowserRouter>
+  );
   return (
     <QueryClientProvider client={queryClient}>
-      <BrowserRouter>
-        <Bootstrap>{children}</Bootstrap>
-        <Toaster position="top-center" theme="dark" richColors />
-      </BrowserRouter>
+      {isMapsConfigured ? <APIProvider apiKey={MAPS_API_KEY}>{tree}</APIProvider> : tree}
     </QueryClientProvider>
   );
 }

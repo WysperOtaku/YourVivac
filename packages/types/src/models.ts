@@ -216,7 +216,7 @@ export interface LinkPin extends PinBase {
 
 export interface MapPin extends PinBase {
   type: 'map';
-  map: { label: string; coords: GeoCoords; placeId?: string; address?: string; elevation?: number };
+  map: { label: string; coords: GeoCoords; placeId?: string; address?: string; elevation?: number; path?: GeoCoords[] };
 }
 
 export interface ListPin extends PinBase {
