@@ -1,9 +1,15 @@
+import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useMutation } from '@tanstack/react-query';
+import { toast } from 'sonner';
+import type { UpdateSettingsRequest } from '@yourvivac/types';
 import { AppShell } from '@/components/AppShell';
 import { Avatar, Icon, Toggle, type IconName } from '@/ui';
 import { api } from '@/lib/api';
+import { errMsg } from '@/lib/errMsg';
 import { useUiStore } from '@/stores/uiStore';
 import { useAuthStore } from '@/stores/authStore';
+import { GuideApplyModal } from './GuideApplyModal';
 
 function Group({ label, children }: { label: string; children: React.ReactNode }) {
   return (
@@ -49,7 +55,15 @@ function Row({
 export function SettingsScreen() {
   const navigate = useNavigate();
   const { theme, setTheme } = useUiStore();
-  const { user, clear } = useAuthStore();
+  const { user, clear, setUser } = useAuthStore();
+  const [guideOpen, setGuideOpen] = useState(false);
+  const settings = user?.settings;
+
+  const settingsMut = useMutation({
+    mutationFn: (patch: UpdateSettingsRequest) => api.users.updateSettings(patch),
+    onSuccess: (updated) => setUser(updated),
+    onError: (e) => toast.error(errMsg(e, 'No se pudieron guardar los ajustes')),
+  });
 
   async function logout() {
     try {
@@ -74,21 +88,70 @@ export function SettingsScreen() {
         </div>
 
         <Group label="Cuenta">
-          <Row icon="user" t="Perfil público" sub={`@${user?.username ?? 'marcosvidal'}`} />
-          <Row icon="shield" t="Solicitar rol de guía" sub="Verifica tu titulación" tone="var(--terra)" right={<span className="chip chip--terra">Nuevo</span>} />
+          <div className="cursor-pointer" onClick={() => navigate('/perfil')}>
+            <Row icon="user" t="Perfil público" sub={`@${user?.username ?? ''}`} />
+          </div>
+          {user?.role !== 'guide' && (
+            <div className="cursor-pointer" onClick={() => setGuideOpen(true)}>
+              <Row icon="shield" t="Solicitar rol de guía" sub="Verifica tu titulación" tone="var(--terra)" right={<span className="chip chip--terra">Nuevo</span>} />
+            </div>
+          )}
           <Row icon="lock" t="Privacidad y seguridad" last />
         </Group>
 
         <Group label="Preferencias">
-          <Row icon="bell" t="Notificaciones push" right={<Toggle checked onChange={() => {}} label="push" />} />
-          <Row icon="globe" t="Salidas públicas por defecto" sub="Tus salidas se ven en Explorar" right={<Toggle checked={false} onChange={() => {}} label="públicas" />} />
+          <Row
+            icon="bell"
+            t="Notificaciones push"
+            right={
+              <Toggle
+                checked={settings?.notifications?.push ?? true}
+                onChange={(v) => settingsMut.mutate({ notifications: { push: v } })}
+                label="push"
+              />
+            }
+          />
+          <Row
+            icon="globe"
+            t="Salidas públicas por defecto"
+            sub="Tus salidas se ven en Explorar"
+            right={
+              <Toggle
+                checked={settings?.defaultTripVisibility === 'public'}
+                onChange={(v) => settingsMut.mutate({ defaultTripVisibility: v ? 'public' : 'private' })}
+                label="públicas"
+              />
+            }
+          />
           <Row
             icon="image"
             t="Tema oscuro"
             sub={theme === 'dark' ? 'Oscuro' : 'Claro'}
-            right={<Toggle checked={theme === 'dark'} onChange={(v) => setTheme(v ? 'dark' : 'light')} label="tema" />}
+            right={
+              <Toggle
+                checked={theme === 'dark'}
+                onChange={(v) => {
+                  const next = v ? 'dark' : 'light';
+                  setTheme(next);
+                  settingsMut.mutate({ theme: next });
+                }}
+                label="tema"
+              />
+            }
           />
-          <Row icon="ruler" t="Unidades" sub="Métrico · metros, km, kg" last />
+          <Row
+            icon="ruler"
+            t="Unidades"
+            sub={settings?.units === 'imperial' ? 'Imperial · pies, millas, lb' : 'Métrico · metros, km, kg'}
+            right={
+              <Toggle
+                checked={settings?.units === 'imperial'}
+                onChange={(v) => settingsMut.mutate({ units: v ? 'imperial' : 'metric' })}
+                label="unidades"
+              />
+            }
+            last
+          />
         </Group>
 
         <Group label="Soporte">
@@ -105,6 +168,7 @@ export function SettingsScreen() {
         </button>
         <p className="faint mono mt-3.5 text-center text-[11px]">YourVivac · v1.0.0</p>
       </div>
+      <GuideApplyModal open={guideOpen} onClose={() => setGuideOpen(false)} />
     </AppShell>
   );
 }

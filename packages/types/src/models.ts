@@ -167,6 +167,8 @@ export interface Trip extends WithId, Timestamps {
   gpx?: MediaRef;
   stats: TripStats;
   completedAt?: ISODateString;
+  /** Identidades públicas de los miembros (poblado por el API en lecturas). */
+  memberUsers?: PublicUser[];
 }
 
 // ---------------------------------------------------------------------------

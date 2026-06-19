@@ -1,4 +1,11 @@
-import type { CreateTripRequest, Trip, UpdateTripRequest, Rsvp } from '@yourvivac/types';
+import type {
+  CreateTripRequest,
+  GuideApplicationStatus,
+  PublicUser,
+  Trip,
+  UpdateTripRequest,
+  Rsvp,
+} from '@yourvivac/types';
 import { uniqueSlug } from '@yourvivac/utils';
 import { TripModel } from '../../models/trip.model.js';
 import { ActivityModel } from '../../models/activity.model.js';
@@ -9,6 +16,36 @@ import { HttpError } from '../../middleware/error.js';
 
 function isMember(trip: { members: { userId: unknown }[] }, userId: string): boolean {
   return trip.members.some((m) => String(m.userId) === userId);
+}
+
+/** Adjunta las identidades públicas de los miembros a una o varias salidas. */
+async function attachMemberUsers<T extends Trip>(trips: T[]): Promise<T[]> {
+  const ids = [...new Set(trips.flatMap((t) => t.members.map((m) => String(m.userId))))];
+  if (ids.length === 0) return trips;
+  const users = await UserModel.find({ _id: { $in: ids } }).select(
+    'displayName username avatar role guide.status guide.certBody',
+  );
+  const map = new Map<string, PublicUser>(
+    users.map((u): [string, PublicUser] => [
+      String(u._id),
+      {
+        id: String(u._id),
+        displayName: u.displayName,
+        username: u.username,
+        avatar: u.avatar?.url ? { url: u.avatar.url, publicId: u.avatar.publicId ?? '' } : undefined,
+        role: u.role,
+        guide: u.guide?.status
+          ? { status: u.guide.status as GuideApplicationStatus, certBody: u.guide.certBody ?? undefined }
+          : undefined,
+      },
+    ]),
+  );
+  return trips.map((t) => ({
+    ...t,
+    memberUsers: t.members
+      .map((m) => map.get(String(m.userId)))
+      .filter((u): u is PublicUser => Boolean(u)),
+  }));
 }
 
 export const tripsService = {
@@ -25,7 +62,7 @@ export const tripsService = {
 
   async listForUser(userId: string): Promise<Trip[]> {
     const trips = await TripModel.find({ 'members.userId': userId }).sort({ startDate: 1 });
-    return serializeDocs<Trip>(trips);
+    return attachMemberUsers(serializeDocs<Trip>(trips));
   },
 
   async getForMember(tripId: string, userId: string): Promise<Trip> {
@@ -34,7 +71,8 @@ export const tripsService = {
     if (!isMember(trip, userId) && trip.visibility !== 'public') {
       throw HttpError.forbidden('No eres miembro de esta salida');
     }
-    return serializeDoc<Trip>(trip);
+    const [withUsers] = await attachMemberUsers([serializeDoc<Trip>(trip)]);
+    return withUsers!;
   },
 
   async update(tripId: string, userId: string, patch: UpdateTripRequest): Promise<Trip> {
@@ -141,6 +179,12 @@ export const tripsService = {
         .limit(pageSize),
       TripModel.countDocuments(filter),
     ]);
-    return { items: serializeDocs<Trip>(docs), total, page, pageSize, hasMore: page * pageSize < total };
+    return {
+      items: await attachMemberUsers(serializeDocs<Trip>(docs)),
+      total,
+      page,
+      pageSize,
+      hasMore: page * pageSize < total,
+    };
   },
 };

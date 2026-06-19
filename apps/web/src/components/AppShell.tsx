@@ -2,6 +2,7 @@ import type { ReactNode } from 'react';
 import { NavLink, useNavigate } from 'react-router-dom';
 import { Avatar, Icon, Logo, type IconName } from '@/ui';
 import { cn } from '@/lib/cn';
+import { NotificationsBell } from '@/components/NotificationsBell';
 import { useAuthStore } from '@/stores/authStore';
 
 interface NavItem {
@@ -101,7 +102,7 @@ export function AppShell({ children, topbar, bareDesktop }: Props) {
                 <Icon name="search" size={18} className="text-ink-3" />
                 <span className="faint text-sm">Buscar…</span>
               </div>
-              <Icon name="bell" size={22} />
+              <NotificationsBell />
               <Avatar name={user?.displayName ?? 'Invitado'} size={36} />
               {topbar.actions}
             </div>

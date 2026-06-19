@@ -34,7 +34,6 @@ export default function App() {
       <Route path="/equipo" element={<Private><GearScreen /></Private>} />
       <Route path="/consejos" element={<Private><TipsScreen /></Private>} />
       <Route path="/perfil" element={<Private><ProfileScreen /></Private>} />
-      <Route path="/perfil/guia" element={<Private><ProfileScreen guide /></Private>} />
       <Route path="/u/:username" element={<Private><ProfileScreen /></Private>} />
       <Route path="/ajustes" element={<Private><SettingsScreen /></Private>} />
       <Route

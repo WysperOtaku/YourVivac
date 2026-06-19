@@ -6,6 +6,7 @@ interface AuthState {
   user: User | null;
   status: 'idle' | 'loading' | 'authenticated' | 'unauthenticated';
   setAuth: (user: User, accessToken: string) => void;
+  setUser: (user: User) => void;
   clear: () => void;
   loadMe: () => Promise<void>;
 }
@@ -18,6 +19,7 @@ export const useAuthStore = create<AuthState>((set) => ({
     api.tokenStore.setAccessToken(accessToken);
     set({ user, status: 'authenticated' });
   },
+  setUser: (user) => set({ user }),
   clear: () => {
     api.tokenStore.setAccessToken(null);
     set({ user: null, status: 'unauthenticated' });

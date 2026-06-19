@@ -1,33 +1,15 @@
 import { useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { AppShell } from '@/components/AppShell';
-import { TripCard, type Member } from '@/components/cards';
+import { TripCard } from '@/components/cards';
 import { Icon } from '@/ui';
 import { api } from '@/lib/api';
-
-const DEMO = [
-  { name: 'Vivac en el Aneto', place: 'Benasque, Huesca', date: '14 JUN', m: '1.180', dist: '22', status: 'Confirmada', members: [{ n: 'Marcos' }, { n: 'Lucía', t: 't' }, { n: 'Iker', t: 's' }] as Member[] },
-  { name: 'Travesía GR-11', place: 'Pirineo navarro', date: '2 JUL', m: '2.400', dist: '48', status: 'Planeando', members: [{ n: 'Marcos' }, { n: 'Bea', t: 't' }] as Member[] },
-  { name: 'Posets por Llardaneta', place: 'Benasque', date: '20 JUL', m: '1.510', dist: '19', status: 'Planeando', members: [{ n: 'Marcos' }] as Member[] },
-];
+import { tripToCard } from '@/lib/format';
 
 export function TripsListScreen() {
   const navigate = useNavigate();
-  const { data } = useQuery({ queryKey: ['trips'], queryFn: () => api.trips.list(), retry: false });
-
-  const trips =
-    data && data.length > 0
-      ? data.map((t) => ({
-          id: t.id,
-          name: t.title,
-          place: t.location?.name ?? '',
-          date: new Date(t.startDate).toLocaleDateString('es-ES', { day: 'numeric', month: 'short' }).toUpperCase(),
-          m: String(t.elevationGain ?? 0),
-          dist: String(t.distanceKm ?? 0),
-          status: t.status === 'confirmed' ? 'Confirmada' : 'Planeando',
-          members: (t.members ?? []).map((mm) => ({ n: String(mm.userId).slice(0, 6) })) as Member[],
-        }))
-      : DEMO.map((d) => ({ id: undefined as string | undefined, ...d }));
+  const { data, isLoading } = useQuery({ queryKey: ['trips'], queryFn: () => api.trips.list(), retry: false });
+  const trips = data ?? [];
 
   return (
     <AppShell topbar={{ title: 'Tus salidas', sub: 'Salidas' }}>
@@ -38,11 +20,23 @@ export function TripsListScreen() {
             <Icon name="plus" size={18} /> Nueva
           </button>
         </div>
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 [&>*]:max-w-none">
-          {trips.map((t, i) => (
-            <TripCard key={i} {...t} onClick={() => navigate(t.id ? `/salida/${t.id}` : '/salida/demo')} />
-          ))}
-        </div>
+
+        {isLoading ? (
+          <div className="faint py-10 text-center text-sm">Cargando salidas…</div>
+        ) : trips.length === 0 ? (
+          <div className="card p-8 text-center">
+            <p className="muted">No tienes salidas todavía.</p>
+            <button className="btn mt-3" onClick={() => navigate('/crear')}>
+              <Icon name="plus" size={16} /> Crear la primera
+            </button>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 [&>*]:max-w-none">
+            {trips.map((t) => (
+              <TripCard key={t.id} {...tripToCard(t)} onClick={() => navigate(`/salida/${t.id}`)} />
+            ))}
+          </div>
+        )}
       </div>
     </AppShell>
   );
