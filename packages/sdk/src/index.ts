@@ -1,5 +1,8 @@
 import type { AxiosInstance } from 'axios';
 import type {
+  AdminResolveReportRequest,
+  AdminReviewGuideRequest,
+  AdminUpdateUserRequest,
   AggregatedProduct,
   AuthResponse,
   CreateGearListRequest,
@@ -7,26 +10,49 @@ import type {
   CreateTipRequest,
   CreateTripRequest,
   FeedItem,
+  ForgotPasswordRequest,
+  GearItemInput,
   GearList,
   GoogleAuthRequest,
+  GuideApplication,
+  GuideApplyRequest,
   InviteRequest,
   LoginRequest,
+  Media,
   Message,
   Notification,
   Paginated,
   Pin,
   ProductSearchResponse,
   RegisterRequest,
+  Report,
+  ResetPasswordRequest,
   RsvpRequest,
   SendMessageRequest,
   Tip,
   Trip,
+  UpdateGearItemRequest,
   UpdateSettingsRequest,
   UpdateTripRequest,
   UpdateUserRequest,
   User,
   UserProfileResponse,
+  VerifyEmailRequest,
 } from '@yourvivac/types';
+
+/** Métricas agregadas del panel admin. */
+export interface AdminMetrics {
+  users: number;
+  trips: number;
+  tips: number;
+  pendingGuides: number;
+  openReports: number;
+}
+/** Punto de una serie temporal del panel admin. */
+export interface AdminTimeseriesPoint {
+  date: string;
+  value: number;
+}
 import { createHttpClient, type ApiClientOptions } from './client.js';
 
 export * from './client.js';
@@ -49,6 +75,11 @@ export function createApiClient(options: ApiClientOptions) {
       refresh: () => data<{ accessToken: string }>(http.post('/auth/refresh')),
       logout: () => data<void>(http.post('/auth/logout')),
       me: () => data<User>(http.get('/auth/me')),
+      verifyEmail: (b: VerifyEmailRequest) => data<{ ok: true }>(http.post('/auth/verify-email', b)),
+      forgotPassword: (b: ForgotPasswordRequest) =>
+        data<{ ok: true }>(http.post('/auth/forgot-password', b)),
+      resetPassword: (b: ResetPasswordRequest) =>
+        data<{ ok: true }>(http.post('/auth/reset-password', b)),
     },
 
     users: {
@@ -61,6 +92,24 @@ export function createApiClient(options: ApiClientOptions) {
       unfollow: (id: string) => data<void>(http.delete(`/users/${id}/follow`)),
       trips: (id: string) => data<Trip[]>(http.get(`/users/${id}/trips`)),
       tips: (id: string) => data<Tip[]>(http.get(`/users/${id}/tips`)),
+      avatar: (file: Blob) => {
+        const form = new FormData();
+        form.append('file', file);
+        return data<User>(http.post('/users/me/avatar', form));
+      },
+    },
+
+    guide: {
+      apply: (b: GuideApplyRequest) => data<GuideApplication>(http.post('/guide/apply', b)),
+      application: () => data<GuideApplication | null>(http.get('/guide/application')),
+    },
+
+    media: {
+      upload: (file: Blob) => {
+        const form = new FormData();
+        form.append('file', file);
+        return data<Media>(http.post('/media/upload', form));
+      },
     },
 
     trips: {
@@ -90,7 +139,9 @@ export function createApiClient(options: ApiClientOptions) {
     gear: {
       list: () => data<GearList[]>(http.get('/gear-lists')),
       create: (b: CreateGearListRequest) => data<GearList>(http.post('/gear-lists', b)),
-      updateItem: (listId: string, itemId: string, b: Record<string, unknown>) =>
+      addItem: (listId: string, b: GearItemInput) =>
+        data<GearList>(http.post(`/gear-lists/${listId}/items`, b)),
+      updateItem: (listId: string, itemId: string, b: UpdateGearItemRequest) =>
         data<GearList>(http.patch(`/gear-lists/${listId}/items/${itemId}`, b)),
     },
 
@@ -129,6 +180,23 @@ export function createApiClient(options: ApiClientOptions) {
     feed: {
       home: (params?: Record<string, unknown>) =>
         data<Paginated<FeedItem>>(http.get('/feed', { params })),
+    },
+
+    admin: {
+      metrics: () => data<AdminMetrics>(http.get('/admin/metrics')),
+      timeseries: (params: { from: string; to: string; metric?: string }) =>
+        data<AdminTimeseriesPoint[]>(http.get('/admin/metrics/timeseries', { params })),
+      users: (params?: { page?: number; pageSize?: number; q?: string }) =>
+        data<Paginated<User>>(http.get('/admin/users', { params })),
+      updateUser: (id: string, b: AdminUpdateUserRequest) =>
+        data<User>(http.patch(`/admin/users/${id}`, b)),
+      guideApplications: (status?: string) =>
+        data<GuideApplication[]>(http.get('/admin/guide-applications', { params: { status } })),
+      reviewGuide: (id: string, b: AdminReviewGuideRequest) =>
+        data<GuideApplication>(http.patch(`/admin/guide-applications/${id}`, b)),
+      reports: () => data<Report[]>(http.get('/admin/reports')),
+      resolveReport: (id: string, b: AdminResolveReportRequest) =>
+        data<Report>(http.patch(`/admin/reports/${id}`, b)),
     },
   };
 
