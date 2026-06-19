@@ -113,7 +113,7 @@ export function AppShell({ children, topbar, bareDesktop }: Props) {
         <div className="flex-1 overflow-y-auto pb-24 lg:pb-0">{children}</div>
 
         {/* Tab bar inferior (móvil) */}
-        <nav className="fixed inset-x-0 bottom-0 z-40 flex items-center justify-around bg-bg-2 px-2 pb-2 pt-2.5 shadow-[inset_0_1px_0_var(--line)] lg:hidden">
+        <nav className="fixed inset-x-0 bottom-0 z-40 flex items-center justify-around bg-bg-2 px-2 pt-2.5 pb-[max(0.5rem,env(safe-area-inset-bottom))] shadow-[inset_0_1px_0_var(--line)] lg:hidden">
           {TABS.map((t) =>
             t.center ? (
               <NavLink key={t.to} to={t.to} className="flex-none">
