@@ -1,4 +1,15 @@
-import { Icon, Logo } from '@/ui';
+import { useState } from 'react';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { Navigate, useNavigate } from 'react-router-dom';
+import { toast } from 'sonner';
+import { loginSchema, registerSchema } from '@yourvivac/validation';
+import type { LoginRequest, RegisterRequest } from '@yourvivac/types';
+import { Field, Icon, Logo } from '@/ui';
+import { api } from '@/lib/api';
+import { errMsg } from '@/lib/errMsg';
+import { useAuthStore } from '@/stores/authStore';
+import { isFirebaseConfigured, signInWithGoogle } from '@/lib/firebase';
 
 function GoogleG({ size = 20 }: { size?: number }) {
   return (
@@ -11,11 +22,67 @@ function GoogleG({ size = 20 }: { size?: number }) {
   );
 }
 
+type Mode = 'login' | 'register';
+
 export function LoginScreen() {
+  const navigate = useNavigate();
+  const { user, setAuth } = useAuthStore();
+  const [mode, setMode] = useState<Mode>('login');
+  const [busy, setBusy] = useState(false);
+
+  const loginForm = useForm<LoginRequest>({ resolver: zodResolver(loginSchema) });
+  const registerForm = useForm<RegisterRequest>({ resolver: zodResolver(registerSchema) });
+
+  if (user) return <Navigate to="/" replace />;
+
+  async function onLogin(values: LoginRequest) {
+    setBusy(true);
+    try {
+      const { user: u, accessToken } = await api.auth.login(values);
+      setAuth(u, accessToken);
+      navigate('/', { replace: true });
+    } catch (err) {
+      toast.error(errMsg(err, 'No se pudo iniciar sesión'));
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function onRegister(values: RegisterRequest) {
+    setBusy(true);
+    try {
+      const { user: u, accessToken } = await api.auth.register(values);
+      setAuth(u, accessToken);
+      navigate('/', { replace: true });
+    } catch (err) {
+      toast.error(errMsg(err, 'No se pudo crear la cuenta'));
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function onGoogle() {
+    if (!isFirebaseConfigured) {
+      toast.error('Google no está configurado en este entorno');
+      return;
+    }
+    setBusy(true);
+    try {
+      const idToken = await signInWithGoogle();
+      const { user: u, accessToken } = await api.auth.google({ idToken });
+      setAuth(u, accessToken);
+      navigate('/', { replace: true });
+    } catch (err) {
+      toast.error(errMsg(err, 'No se pudo entrar con Google'));
+    } finally {
+      setBusy(false);
+    }
+  }
+
   return (
     <div className="relative flex h-full flex-col overflow-hidden lg:flex-row">
       {/* Portada */}
-      <div className="imgslot topo relative h-[46%] w-full items-start lg:h-full lg:w-1/2">
+      <div className="imgslot topo relative h-[34%] w-full items-start lg:h-full lg:w-1/2">
         <div className="topo-bg" />
         <span className="imgslot__tag m-3.5">foto · vivac nocturno</span>
         <div className="absolute left-7 top-8 lg:top-10">
@@ -24,29 +91,100 @@ export function LoginScreen() {
       </div>
 
       {/* Contenido */}
-      <div className="relative flex flex-1 flex-col justify-end px-7 pb-8 lg:justify-center lg:px-16">
+      <div className="relative flex flex-1 flex-col justify-center px-7 pb-8 pt-6 lg:px-16">
         <div className="mx-auto w-full max-w-md">
           <div className="eyebrow mb-3.5">El campamento base de tus salidas</div>
-          <h1 className="text-[40px] leading-[0.98] tracking-[-0.02em] lg:text-[52px]">
+          <h1 className="text-[34px] leading-[0.98] tracking-[-0.02em] lg:text-[44px]">
             Planifica tu vivac.
             <br />
             <span className="text-accent">Reúne</span> a tu gente.
           </h1>
-          <p className="muted mt-3.5 max-w-sm text-base">
-            Crea la excursión, invita a tus amigos y montad juntos el tablero: rutas, listas de equipo y mapas en un mismo sitio.
-          </p>
-          <div className="stack gap10 mt-6">
+
+          <button
+            className="btn btn--block btn--lg shadow mt-6"
+            style={{ background: '#fff', color: '#1a1a1a' }}
+            onClick={onGoogle}
+            disabled={busy}
+          >
+            <GoogleG size={20} /> Continuar con Google
+          </button>
+
+          <div className="row gap10 my-4 text-ink-3">
+            <span className="h-px grow bg-[var(--line)]" />
+            <span className="mono text-[11px]">o con tu correo</span>
+            <span className="h-px grow bg-[var(--line)]" />
+          </div>
+
+          {/* Conmutador entrar / crear cuenta */}
+          <div className="row gap6 mb-4">
             <button
-              className="btn btn--block btn--lg shadow"
-              style={{ background: '#fff', color: '#1a1a1a' }}
-              disabled
+              className={`chip ${mode === 'login' ? 'chip--accent' : ''}`}
+              onClick={() => setMode('login')}
             >
-              <GoogleG size={20} /> Continuar con Google
+              Entrar
             </button>
-            <button className="btn btn--block btn--ghost btn--lg">
-              <Icon name="user" size={18} /> Continuar con correo
+            <button
+              className={`chip ${mode === 'register' ? 'chip--accent' : ''}`}
+              onClick={() => setMode('register')}
+            >
+              Crear cuenta
             </button>
           </div>
+
+          {mode === 'login' ? (
+            <form className="stack gap10" onSubmit={loginForm.handleSubmit(onLogin)}>
+              <Field
+                label="Correo"
+                type="email"
+                placeholder="tu@correo.com"
+                error={loginForm.formState.errors.email?.message}
+                {...loginForm.register('email')}
+              />
+              <Field
+                label="Contraseña"
+                type="password"
+                placeholder="••••••••"
+                error={loginForm.formState.errors.password?.message}
+                {...loginForm.register('password')}
+              />
+              <button className="btn btn--block btn--lg" type="submit" disabled={busy}>
+                <Icon name="user" size={18} /> {busy ? 'Entrando…' : 'Entrar'}
+              </button>
+            </form>
+          ) : (
+            <form className="stack gap10" onSubmit={registerForm.handleSubmit(onRegister)}>
+              <Field
+                label="Nombre"
+                placeholder="Marcos Vidal"
+                error={registerForm.formState.errors.displayName?.message}
+                {...registerForm.register('displayName')}
+              />
+              <Field
+                label="Usuario"
+                placeholder="marcosvidal"
+                error={registerForm.formState.errors.username?.message}
+                {...registerForm.register('username')}
+              />
+              <Field
+                label="Correo"
+                type="email"
+                placeholder="tu@correo.com"
+                error={registerForm.formState.errors.email?.message}
+                {...registerForm.register('email')}
+              />
+              <Field
+                label="Contraseña"
+                type="password"
+                placeholder="mínimo 8 caracteres"
+                error={registerForm.formState.errors.password?.message}
+                {...registerForm.register('password')}
+              />
+              <button className="btn btn--block btn--lg" type="submit" disabled={busy}>
+                <Icon name="user" size={18} /> {busy ? 'Creando…' : 'Crear cuenta'}
+              </button>
+            </form>
+          )}
+
           <p className="faint mt-4 text-center text-xs leading-relaxed">
             Al continuar aceptas los <u>Términos</u> y la <u>Política de privacidad</u> de YourVivac.
           </p>

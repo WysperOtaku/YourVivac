@@ -1,4 +1,5 @@
 import { Routes, Route } from 'react-router-dom';
+import { AuthGuard } from '@/components/AuthGuard';
 import { RoleGuard } from '@/components/RoleGuard';
 import { LoginScreen } from '@/screens/auth/LoginScreen';
 import { HomeScreen } from '@/screens/home/HomeScreen';
@@ -14,22 +15,28 @@ import { ProfileScreen } from '@/screens/profile/ProfileScreen';
 import { SettingsScreen } from '@/screens/settings/SettingsScreen';
 import { AdminScreen } from '@/screens/admin/AdminScreen';
 
+/** Envuelve una pantalla privada con el guard de sesión. */
+function Private({ children }: { children: React.ReactNode }) {
+  return <AuthGuard>{children}</AuthGuard>;
+}
+
 export default function App() {
   return (
     <Routes>
       <Route path="/login" element={<LoginScreen />} />
-      <Route path="/" element={<HomeScreen />} />
-      <Route path="/crear" element={<CreateTripScreen />} />
-      <Route path="/salidas" element={<TripsListScreen />} />
-      <Route path="/salida/:id" element={<TripDetailScreen />} />
-      <Route path="/salida/:id/tablero" element={<BoardScreen />} />
-      <Route path="/salida/:id/chat" element={<ChatScreen />} />
-      <Route path="/explorar" element={<ExploreScreen />} />
-      <Route path="/equipo" element={<GearScreen />} />
-      <Route path="/consejos" element={<TipsScreen />} />
-      <Route path="/perfil" element={<ProfileScreen />} />
-      <Route path="/perfil/guia" element={<ProfileScreen guide />} />
-      <Route path="/ajustes" element={<SettingsScreen />} />
+      <Route path="/" element={<Private><HomeScreen /></Private>} />
+      <Route path="/crear" element={<Private><CreateTripScreen /></Private>} />
+      <Route path="/salidas" element={<Private><TripsListScreen /></Private>} />
+      <Route path="/salida/:id" element={<Private><TripDetailScreen /></Private>} />
+      <Route path="/salida/:id/tablero" element={<Private><BoardScreen /></Private>} />
+      <Route path="/salida/:id/chat" element={<Private><ChatScreen /></Private>} />
+      <Route path="/explorar" element={<Private><ExploreScreen /></Private>} />
+      <Route path="/equipo" element={<Private><GearScreen /></Private>} />
+      <Route path="/consejos" element={<Private><TipsScreen /></Private>} />
+      <Route path="/perfil" element={<Private><ProfileScreen /></Private>} />
+      <Route path="/perfil/guia" element={<Private><ProfileScreen guide /></Private>} />
+      <Route path="/u/:username" element={<Private><ProfileScreen /></Private>} />
+      <Route path="/ajustes" element={<Private><SettingsScreen /></Private>} />
       <Route
         path="/admin"
         element={
@@ -38,7 +45,7 @@ export default function App() {
           </RoleGuard>
         }
       />
-      <Route path="*" element={<HomeScreen />} />
+      <Route path="*" element={<Private><HomeScreen /></Private>} />
     </Routes>
   );
 }

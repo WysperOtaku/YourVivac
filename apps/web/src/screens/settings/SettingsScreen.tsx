@@ -1,5 +1,7 @@
+import { useNavigate } from 'react-router-dom';
 import { AppShell } from '@/components/AppShell';
 import { Avatar, Icon, Toggle, type IconName } from '@/ui';
+import { api } from '@/lib/api';
 import { useUiStore } from '@/stores/uiStore';
 import { useAuthStore } from '@/stores/authStore';
 
@@ -45,8 +47,19 @@ function Row({
 }
 
 export function SettingsScreen() {
+  const navigate = useNavigate();
   const { theme, setTheme } = useUiStore();
   const { user, clear } = useAuthStore();
+
+  async function logout() {
+    try {
+      await api.auth.logout();
+    } catch {
+      /* da igual si falla: limpiamos la sesión local de todos modos */
+    }
+    clear();
+    navigate('/login', { replace: true });
+  }
 
   return (
     <AppShell topbar={{ title: 'Ajustes', sub: 'Cuenta' }}>
@@ -86,7 +99,7 @@ export function SettingsScreen() {
         <button
           className="btn btn--ghost btn--block"
           style={{ color: 'var(--terra)', boxShadow: 'inset 0 0 0 1px color-mix(in srgb,var(--terra) 40%,transparent)' }}
-          onClick={() => clear()}
+          onClick={logout}
         >
           Cerrar sesión
         </button>
