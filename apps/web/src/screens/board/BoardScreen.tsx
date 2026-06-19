@@ -1,158 +1,109 @@
-import { useState } from 'react';
+import { useState, type CSSProperties } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import {
+  DndContext,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  useDraggable,
+  type DragEndEvent,
+} from '@dnd-kit/core';
+import { toast } from 'sonner';
+import type { Pin, PinType } from '@yourvivac/types';
 import { AppShell } from '@/components/AppShell';
+import { ChatPanel } from '@/components/ChatPanel';
 import { Avatar, Icon } from '@/ui';
-import { NotePin, PhotoPin, LinkPin, ListPin, MapPin, TextPin } from './pins';
+import { api } from '@/lib/api';
+import { errMsg } from '@/lib/errMsg';
+import { useTripRoom } from '@/hooks/useTripRoom';
+import { useAuthStore } from '@/stores/authStore';
+import { PinView } from './pins';
+import { AddPinModal } from './AddPinModal';
 
 type View = 'free' | 'wall' | 'guided';
-const MEMBERS: [string, '' | 't' | 's'][] = [
-  ['Marcos', ''],
-  ['Lucía', 't'],
-  ['Iker', 's'],
-  ['Ana', ''],
+
+const GROUPS: { type: PinType; icon: 'list' | 'image' | 'note' | 'pin' | 'link'; title: string }[] = [
+  { type: 'list', icon: 'list', title: 'Equipo' },
+  { type: 'photo', icon: 'image', title: 'Fotos' },
+  { type: 'note', icon: 'note', title: 'Notas' },
+  { type: 'text', icon: 'note', title: 'Avisos' },
+  { type: 'map', icon: 'pin', title: 'Mapa' },
+  { type: 'link', icon: 'link', title: 'Enlaces' },
 ];
 
-function BoardFree() {
-  return (
-    <div className="board">
-      <NotePin style={{ left: 16, top: 16, width: 200, transform: 'rotate(-2deg)' }} />
-      <PhotoPin style={{ left: 240, top: 28, width: 200, transform: 'rotate(1.6deg)' }} />
-      <MapPin style={{ left: 470, top: 18, width: 210, transform: 'rotate(-1.4deg)' }} />
-      <LinkPin style={{ left: 20, top: 320, width: 200, transform: 'rotate(1.4deg)' }} />
-      <ListPin style={{ left: 244, top: 330, width: 206, transform: 'rotate(-1.6deg)' }} />
-      <TextPin style={{ left: 480, top: 330, width: 196, transform: 'rotate(2deg)' }} />
-    </div>
-  );
-}
-
-function BoardWall() {
-  return (
-    <div className="absolute inset-0 overflow-y-auto bg-bg p-4">
-      <div className="columns-2 gap-3 lg:columns-3">
-        {[<PhotoPin />, <NotePin />, <ListPin />, <MapPin />, <LinkPin />, <TextPin />].map((el, i) => (
-          <div key={i} className="mb-3 break-inside-avoid [&>.pin]:static [&>.pin]:w-full [&>.pin]:shadow-sm [&_.pin__tack]:hidden">
-            {el}
-          </div>
-        ))}
-      </div>
-    </div>
-  );
-}
-
-function Group({ icon, title, count, children }: { icon: 'list' | 'image' | 'note' | 'pin'; title: string; count: string; children: React.ReactNode }) {
-  return (
-    <section className="mb-5">
-      <div className="row gap8 mb-2.5">
-        <Icon name={icon} size={18} className="text-accent" />
-        <span className="font-display text-[17px]">{title}</span>
-        <span className="chip mono" style={{ fontSize: 10, padding: '1px 7px' }}>
-          {count}
-        </span>
-      </div>
-      {children}
-    </section>
-  );
-}
-
-function BoardGuided() {
-  return (
-    <div className="absolute inset-0 overflow-y-auto bg-bg p-4 lg:px-8">
-      <div className="mx-auto max-w-3xl">
-        <Group icon="list" title="Equipo" count="3 listas">
-          <div className="card p-3">
-            {([['Marcos', '', '12 ítems · 6,4 kg'], ['Lucía', 't', '9 ítems · 5,1 kg']] as const).map(([n, t, s], i) => (
-              <div key={i} className={`row gap10 py-2 ${i < 1 ? 'border-b border-[var(--line)]' : ''}`}>
-                <Avatar name={n} tone={t} size={30} />
-                <div className="grow">
-                  <div className="text-sm">Lista de {n}</div>
-                  <div className="faint mono text-[10.5px]">{s}</div>
-                </div>
-                <Icon name="chevron" size={18} className="text-ink-3" />
-              </div>
-            ))}
-          </div>
-        </Group>
-        <Group icon="note" title="Notas" count="4">
-          <div className="card pin--paper note-md p-3.5 text-[13px]">
-            <h4>Plan de cumbre ⛰️</h4>
-            <p className="mb-0">
-              Salida del refu a las <strong>6:00</strong>. Tramo glaciar con crampones; cuidado en el Paso de Mahoma.
-            </p>
-          </div>
-        </Group>
-        <Group icon="pin" title="Mapa" count="2">
-          <div className="card overflow-hidden">
-            <div className="map h-[120px] rounded-none">
-              <div className="map__pin">
-                <Icon name="pin" size={22} className="text-terra" />
-              </div>
-            </div>
-            <div className="spread px-3 py-2.5">
-              <div className="font-display text-sm">Pico Aneto</div>
-              <span className="chip chip--accent">Abrir</span>
-            </div>
-          </div>
-        </Group>
-      </div>
-    </div>
-  );
-}
-
-function ChatAside() {
-  return (
-    <aside className="hidden w-[330px] flex-none flex-col overflow-hidden bg-bg shadow-[inset_1px_0_0_var(--line)] lg:flex">
-      <div className="spread flex-none px-4 py-4 shadow-[inset_0_-1px_0_var(--line)]">
-        <h3 className="font-display text-[18px]">Chat del grupo</h3>
-        <Icon name="users" size={18} className="text-ink-3" />
-      </div>
-      <div className="grow overflow-y-auto p-4">
-        {([['Lucía', 't', '¿Confirmamos el refugio para el viernes?'], ['Iker', 's', 'Yo reservo. Somos 4 ✋']] as const).map(([n, t, m], i) => (
-          <div key={i} className="row gap8 mb-3 items-end">
-            <Avatar name={n} tone={t} size={26} />
-            <div className="max-w-[210px]">
-              <div className="faint mono mb-0.5 text-[10px]">{n}</div>
-              <div className="rounded-2xl rounded-bl-[5px] bg-bg-3 px-3 py-2 text-sm shadow-[inset_0_0_0_1px_var(--line)]">{m}</div>
-            </div>
-          </div>
-        ))}
-        <div className="row justify-end mb-3">
-          <div className="max-w-[210px] rounded-2xl rounded-br-[5px] bg-accent px-3 py-2 text-sm text-accent-ink">Pineé mi lista de equipo 👀</div>
-        </div>
-      </div>
-      <div className="row gap8 flex-none px-3.5 py-3 shadow-[inset_0_1px_0_var(--line)]">
-        <div className="grow row rounded-2xl bg-bg-3 px-3.5 py-2.5 shadow-[inset_0_0_0_1px_var(--line)]">
-          <span className="faint text-sm">Mensaje…</span>
-        </div>
-        <span className="grid h-[38px] w-[38px] place-items-center rounded-control bg-accent text-accent-ink">
-          <Icon name="send" size={18} />
-        </span>
-      </div>
-    </aside>
-  );
-}
-
 export function BoardScreen() {
-  const { id } = useParams();
+  const { id = '' } = useParams();
   const navigate = useNavigate();
-  const [view, setView] = useState<View>('wall');
+  const qc = useQueryClient();
+  const me = useAuthStore((s) => s.user);
+  const [view, setView] = useState<View>('free');
+  const [adding, setAdding] = useState(false);
+
+  const tripQ = useQuery({ queryKey: ['trip', id], queryFn: () => api.trips.get(id), retry: false });
+  const boardQ = useQuery({ queryKey: ['board', id], queryFn: () => api.board.get(id), retry: false });
+
+  useTripRoom(id, {
+    onPinAdd: () => qc.invalidateQueries({ queryKey: ['board', id] }),
+    onPinUpdate: () => qc.invalidateQueries({ queryKey: ['board', id] }),
+    onPinRemove: () => qc.invalidateQueries({ queryKey: ['board', id] }),
+  });
+
+  const invalidate = () => qc.invalidateQueries({ queryKey: ['board', id] });
+  const updatePinMut = useMutation({
+    mutationFn: (v: { pinId: string; layout: { x: number; y: number } }) => api.board.updatePin(v.pinId, { layout: v.layout }),
+    onSuccess: invalidate,
+  });
+  const deletePinMut = useMutation({
+    mutationFn: (pinId: string) => api.board.deletePin(pinId),
+    onSuccess: invalidate,
+    onError: (e) => toast.error(errMsg(e, 'No se pudo borrar')),
+  });
+  const reactMut = useMutation({
+    mutationFn: (v: { pinId: string; emoji: string }) => api.board.react(v.pinId, v.emoji),
+    onSuccess: invalidate,
+  });
+
+  const trip = tripQ.data;
+  const pins = boardQ.data ?? [];
+  const members = trip?.memberUsers ?? [];
+  const nameOf = (pin: Pin) => members.find((m) => m.id === String(pin.authorId))?.displayName;
+  const canEdit = (pin: Pin) => String(pin.authorId) === me?.id || String(trip?.owner) === me?.id;
+
+  const pinProps = (pin: Pin) => ({
+    pin,
+    authorName: nameOf(pin),
+    canEdit: canEdit(pin),
+    meId: me?.id,
+    onDelete: () => deletePinMut.mutate(pin.id),
+    onReact: (emoji: string) => reactMut.mutate({ pinId: pin.id, emoji }),
+  });
+
+  const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 6 } }));
+  function onDragEnd(e: DragEndEvent) {
+    const { active, delta } = e;
+    const pin = pins.find((p) => p.id === String(active.id));
+    if (!pin || (delta.x === 0 && delta.y === 0)) return;
+    updatePinMut.mutate({ pinId: pin.id, layout: { x: Math.max(0, pin.layout.x + delta.x), y: Math.max(0, pin.layout.y + delta.y) } });
+  }
 
   return (
-    <AppShell topbar={{ title: 'Vivac en el Aneto', sub: '14–15 JUN · Benasque, Huesca' }} bareDesktop>
+    <AppShell topbar={{ title: trip?.title ?? 'Tablero', sub: 'Tablero colaborativo' }} bareDesktop>
       {/* Cabecera móvil */}
       <header className="flex-none px-4 pt-1 lg:hidden">
         <div className="spread">
           <div className="row gap10">
-            <button onClick={() => navigate(-1)} aria-label="Volver">
+            <button onClick={() => navigate(`/salida/${id}`)} aria-label="Volver">
               <Icon name="back" size={26} />
             </button>
             <div>
-              <h3 className="text-[18px]">Vivac en el Aneto</h3>
-              <div className="faint mono text-[11px]">14–15 JUN · 4 montañeros</div>
+              <h3 className="text-[18px]">{trip?.title ?? 'Tablero'}</h3>
+              <div className="faint mono text-[11px]">{members.length} montañeros</div>
             </div>
           </div>
           <div className="row pr-1">
-            {MEMBERS.map(([n, t], i) => (
-              <Avatar key={i} name={n} tone={t} size={28} ring style={{ marginLeft: -7 }} />
+            {members.slice(0, 4).map((m) => (
+              <Avatar key={m.id} name={m.displayName} size={28} ring style={{ marginLeft: -7 }} />
             ))}
           </div>
         </div>
@@ -167,26 +118,109 @@ export function BoardScreen() {
                 <button
                   key={v}
                   onClick={() => setView(v)}
-                  className={`mono rounded-[9px] px-3 py-1.5 text-[12.5px] capitalize ${
-                    view === v ? 'bg-bg-4 text-ink shadow-sm' : 'text-ink-3'
-                  }`}
+                  className={`mono rounded-[9px] px-3 py-1.5 text-[12.5px] capitalize ${view === v ? 'bg-bg-4 text-ink shadow-sm' : 'text-ink-3'}`}
                 >
                   {v === 'free' ? 'Mural' : v === 'wall' ? 'Muro' : 'Guiado'}
                 </button>
               ))}
             </div>
           </div>
-          <div className="relative mt-3 flex-1 overflow-hidden">
-            {view === 'free' && <BoardFree />}
-            {view === 'wall' && <BoardWall />}
-            {view === 'guided' && <BoardGuided />}
-            <button className="btn absolute bottom-5 right-4 rounded-[16px] px-4 py-3 shadow">
+
+          <div className="relative mt-3 flex-1 overflow-auto">
+            {boardQ.isLoading ? (
+              <div className="faint p-10 text-center text-sm">Cargando tablero…</div>
+            ) : pins.length === 0 ? (
+              <div className="grid h-full place-items-center p-10 text-center">
+                <div>
+                  <p className="muted">El tablero está vacío.</p>
+                  <button className="btn mt-3" onClick={() => setAdding(true)}>
+                    <Icon name="plus" size={16} /> Añadir el primer pin
+                  </button>
+                </div>
+              </div>
+            ) : view === 'free' ? (
+              <DndContext sensors={sensors} onDragEnd={onDragEnd}>
+                <div className="board relative min-h-full" style={{ minHeight: 600 }}>
+                  {pins.map((pin) => (
+                    <DraggablePin key={pin.id} pin={pin}>
+                      <PinView {...pinProps(pin)} />
+                    </DraggablePin>
+                  ))}
+                </div>
+              </DndContext>
+            ) : view === 'wall' ? (
+              <div className="bg-bg p-4">
+                <div className="columns-2 gap-3 lg:columns-3">
+                  {pins.map((pin) => (
+                    <div key={pin.id} className="mb-3 break-inside-avoid [&>.pin]:static [&>.pin]:w-full [&>.pin]:shadow-sm [&_.pin__tack]:hidden">
+                      <PinView {...pinProps(pin)} />
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ) : (
+              <div className="bg-bg p-4 lg:px-8">
+                <div className="mx-auto max-w-3xl">
+                  {GROUPS.map((g) => {
+                    const group = pins.filter((p) => p.type === g.type);
+                    if (group.length === 0) return null;
+                    return (
+                      <section key={g.type} className="mb-5">
+                        <div className="row gap8 mb-2.5">
+                          <Icon name={g.icon} size={18} className="text-accent" />
+                          <span className="font-display text-[17px]">{g.title}</span>
+                          <span className="chip mono" style={{ fontSize: 10, padding: '1px 7px' }}>{group.length}</span>
+                        </div>
+                        <div className="columns-1 gap-3 sm:columns-2">
+                          {group.map((pin) => (
+                            <div key={pin.id} className="mb-3 break-inside-avoid [&>.pin]:static [&>.pin]:w-full [&_.pin__tack]:hidden">
+                              <PinView {...pinProps(pin)} />
+                            </div>
+                          ))}
+                        </div>
+                      </section>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+
+            <button className="btn absolute bottom-5 right-4 rounded-[16px] px-4 py-3 shadow" onClick={() => setAdding(true)}>
               <Icon name="plus" size={18} /> Añadir pin
             </button>
           </div>
         </div>
-        <ChatAside />
+
+        {/* Chat (escritorio) */}
+        <aside className="hidden w-[330px] flex-none flex-col overflow-hidden bg-bg shadow-[inset_1px_0_0_var(--line)] lg:flex">
+          <div className="spread flex-none px-4 py-4 shadow-[inset_0_-1px_0_var(--line)]">
+            <h3 className="font-display text-[18px]">Chat del grupo</h3>
+            <Icon name="users" size={18} className="text-ink-3" />
+          </div>
+          {trip && <ChatPanel tripId={id} members={members} className="flex-1" />}
+        </aside>
       </div>
+
+      <AddPinModal open={adding} onClose={() => setAdding(false)} tripId={id} />
     </AppShell>
+  );
+}
+
+function DraggablePin({ pin, children }: { pin: Pin; children: React.ReactNode }) {
+  const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({ id: pin.id });
+  const style: CSSProperties = {
+    position: 'absolute',
+    left: pin.layout.x,
+    top: pin.layout.y,
+    width: pin.layout.w,
+    zIndex: isDragging ? 9999 : pin.layout.z,
+    transform: `${transform ? `translate(${transform.x}px, ${transform.y}px) ` : ''}rotate(${pin.layout.rotation}deg)`,
+    touchAction: 'none',
+    cursor: 'grab',
+  };
+  return (
+    <div ref={setNodeRef} style={style} {...listeners} {...attributes}>
+      {children}
+    </div>
   );
 }
