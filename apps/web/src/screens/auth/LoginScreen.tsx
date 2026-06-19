@@ -87,6 +87,9 @@ export function LoginScreen() {
         <div className="absolute left-7 top-8 lg:top-10">
           <Logo size={20} />
         </div>
+        {/* Difuminado hacia el contenido (como la máscara del diseño) */}
+        <div className="pointer-events-none absolute inset-x-0 bottom-0 h-24 bg-gradient-to-b from-transparent to-[var(--bg)] lg:hidden" />
+        <div className="pointer-events-none absolute inset-y-0 right-0 hidden w-24 bg-gradient-to-r from-transparent to-[var(--bg)] lg:block" />
       </div>
 
       {/* Contenido */}
@@ -98,6 +101,9 @@ export function LoginScreen() {
             <br />
             <span className="text-accent">Reúne</span> a tu gente.
           </h1>
+          <p className="muted mt-3.5 max-w-sm text-[15px]">
+            Crea la excursión, invita a tus amigos y montad juntos el tablero: rutas, listas de equipo y mapas en un mismo sitio.
+          </p>
 
           <button
             className="btn btn--block btn--lg shadow mt-6"
@@ -114,24 +120,8 @@ export function LoginScreen() {
             <span className="h-px grow bg-[var(--line)]" />
           </div>
 
-          {/* Conmutador entrar / crear cuenta */}
-          <div className="row gap6 mb-4">
-            <button
-              className={`chip ${mode === 'login' ? 'chip--accent' : ''}`}
-              onClick={() => setMode('login')}
-            >
-              Entrar
-            </button>
-            <button
-              className={`chip ${mode === 'register' ? 'chip--accent' : ''}`}
-              onClick={() => setMode('register')}
-            >
-              Crear cuenta
-            </button>
-          </div>
-
           {mode === 'login' ? (
-            <form className="stack gap10" onSubmit={loginForm.handleSubmit(onLogin)}>
+            <form className="stack gap12" onSubmit={loginForm.handleSubmit(onLogin)}>
               <Field
                 label="Correo"
                 type="email"
@@ -151,7 +141,7 @@ export function LoginScreen() {
               </button>
             </form>
           ) : (
-            <form className="stack gap10" onSubmit={registerForm.handleSubmit(onRegister)}>
+            <form className="stack gap12" onSubmit={registerForm.handleSubmit(onRegister)}>
               <Field
                 label="Nombre"
                 placeholder="Marcos Vidal"
@@ -183,6 +173,17 @@ export function LoginScreen() {
               </button>
             </form>
           )}
+
+          <p className="muted mt-4 text-center text-[13.5px]">
+            {mode === 'login' ? '¿Aún no tienes cuenta? ' : '¿Ya tienes cuenta? '}
+            <button
+              type="button"
+              className="text-accent underline-offset-2 hover:underline"
+              onClick={() => setMode((m) => (m === 'login' ? 'register' : 'login'))}
+            >
+              {mode === 'login' ? 'Crea una' : 'Entra'}
+            </button>
+          </p>
 
           <p className="faint mt-4 text-center text-xs leading-relaxed">
             Al continuar aceptas los <u>Términos</u> y la <u>Política de privacidad</u> de YourVivac.
