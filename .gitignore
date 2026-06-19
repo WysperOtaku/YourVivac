@@ -34,3 +34,6 @@ web-build/
 
 # Vite
 apps/web/dist/
+
+# Screenshots de fidelidad (generados por scripts/shots.mjs)
+apps/web/shots/
