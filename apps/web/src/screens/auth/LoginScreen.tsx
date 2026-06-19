@@ -83,7 +83,6 @@ export function LoginScreen() {
     <div className="relative flex h-full flex-col overflow-hidden lg:flex-row">
       {/* Portada */}
       <div className="imgslot topo relative h-[34%] w-full items-start lg:h-full lg:w-1/2">
-        <div className="topo-bg" />
         <span className="imgslot__tag m-3.5">foto · vivac nocturno</span>
         <div className="absolute left-7 top-8 lg:top-10">
           <Logo size={20} />
