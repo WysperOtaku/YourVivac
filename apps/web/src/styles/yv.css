@@ -283,6 +283,66 @@
   color: color-mix(in srgb, var(--paper-ink) 55%, transparent);
 }
 
+/* ---- drag orgánico del mural ---- */
+@keyframes pin-wiggle {
+  0%,
+  100% {
+    rotate: -1.6deg;
+    scale: 1.05;
+  }
+  50% {
+    rotate: 1.6deg;
+    scale: 1.06;
+  }
+}
+@keyframes pin-drop {
+  0% {
+    scale: 1.09;
+  }
+  55% {
+    scale: 0.975;
+  }
+  100% {
+    scale: 1;
+  }
+}
+/* Pin libre del mural (escritorio): rota/escala con transición; al arrastrar hace
+   wiggle (como cogido del chincheta) y al soltar asienta. translate lo pone dnd-kit. */
+.pin-free {
+  transition:
+    rotate 0.22s cubic-bezier(0.2, 0.8, 0.3, 1.2),
+    scale 0.16s ease,
+    box-shadow 0.16s ease;
+}
+.pin-free.is-dragging {
+  animation: pin-wiggle 0.62s ease-in-out infinite;
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.45);
+  cursor: grabbing;
+  z-index: 9999;
+}
+.pin-free.is-dropped {
+  animation: pin-drop 0.3s ease;
+}
+
+/* Fondo de corcho para el masonry del mural (versión no absoluta de .board). */
+.cork {
+  background: var(--board);
+  background-image:
+    repeating-radial-gradient(circle at 16% 18%, transparent 0 30px, var(--board-line) 30px 31px),
+    repeating-radial-gradient(circle at 86% 82%, transparent 0 38px, var(--board-line) 38px 39px);
+}
+
+/* Pin tipo post-it para el masonry móvil del mural (inclinación sutil). */
+.pin-postit:nth-child(3n) {
+  rotate: -1.4deg;
+}
+.pin-postit:nth-child(3n + 1) {
+  rotate: 1.2deg;
+}
+.pin-postit:nth-child(3n + 2) {
+  rotate: -0.6deg;
+}
+
 /* ---- nota markdown ---- */
 .note-md p {
   margin: 0 0 6px;

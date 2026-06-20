@@ -16,6 +16,8 @@ interface PinViewProps {
   meId?: string;
   style?: CSSProperties;
   className?: string;
+  /** Sin chincheta (para el muro ordenado / guiado). */
+  flat?: boolean;
 }
 
 function Head({ icon, label, author, onDelete, canEdit }: { icon: 'note' | 'link' | 'list' | 'pin' | 'image'; label: string; author?: string; onDelete?: () => void; canEdit?: boolean }) {
@@ -48,10 +50,10 @@ function Reactions({ pin, meId, onReact }: { pin: Pin; meId?: string; onReact?: 
 }
 
 /** Renderiza un pin real según su tipo. El posicionamiento lo controla el tablero. */
-export function PinView({ pin, authorName, canEdit, onDelete, onReact, meId, style, className }: PinViewProps) {
+export function PinView({ pin, authorName, canEdit, onDelete, onReact, meId, style, className, flat }: PinViewProps) {
   const wrap = (inner: React.ReactNode, extra?: string) => (
     <div className={`pin ${extra ?? ''} ${className ?? ''}`} style={style}>
-      <span className={`pin__tack ${tackClass(pin.type)}`} />
+      {!flat && <span className={`pin__tack ${tackClass(pin.type)}`} />}
       {inner}
     </div>
   );
