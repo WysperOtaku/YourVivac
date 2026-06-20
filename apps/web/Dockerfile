@@ -6,9 +6,11 @@ WORKDIR /app
 COPY . .
 RUN pnpm install --frozen-lockfile
 
-# Las VITE_* se incrustan en el build (cliente). VITE_API_URL debe apuntar a la
-# URL que el NAVEGADOR usará para llegar al API (en local, el puerto publicado).
-ARG VITE_API_URL=http://localhost:4000/api/v1
+# Las VITE_* se incrustan en el build (cliente). VITE_API_URL debe ser una ruta
+# RELATIVA (/api/v1) para que el navegador llame a su propio origen y el servidor
+# web haga de proxy (API_PROXY_TARGET) — así funciona también para clientes remotos.
+# Railway puede sobreescribirla con la URL absoluta del API si los sirve por separado.
+ARG VITE_API_URL=/api/v1
 ARG VITE_FIREBASE_API_KEY=
 ARG VITE_FIREBASE_AUTH_DOMAIN=
 ARG VITE_FIREBASE_PROJECT_ID=

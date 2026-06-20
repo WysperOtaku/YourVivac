@@ -1,13 +1,14 @@
 import { io, type Socket } from 'socket.io-client';
 import { api } from '@/lib/api';
 
-/** Origen del socket = origen del API sin el path `/api/v1`. */
+/** Origen del socket = origen del API sin el path `/api/v1`. Si VITE_API_URL es
+ *  relativo (o falta), usamos el mismo origen de la web (el proxy reenvía /socket.io). */
 function socketOrigin(): string {
-  const url = import.meta.env.VITE_API_URL ?? 'http://localhost:4000/api/v1';
+  const url = import.meta.env.VITE_API_URL ?? '/api/v1';
   try {
     return new URL(url).origin;
   } catch {
-    return 'http://localhost:4000';
+    return window.location.origin;
   }
 }
 
