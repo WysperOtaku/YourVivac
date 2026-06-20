@@ -10,6 +10,7 @@ import { api } from '@/lib/api';
 import { errMsg } from '@/lib/errMsg';
 import { isMapsConfigured } from '@/lib/maps';
 import { LocationSearch } from '@/components/maps/LocationSearch';
+import { DateTimePicker } from '@/components/DateTimePicker';
 
 const DIFFS: { key: TripDifficulty; label: string }[] = [
   { key: 'facil', label: 'Fácil' },
@@ -101,15 +102,15 @@ export function CreateTripScreen() {
         <Field label="Nombre de la salida">
           <input className={inputCls} placeholder="Vivac en el Aneto" value={title} onChange={(e) => setTitle(e.target.value)} />
         </Field>
-        <div className="row gap12">
+        <div className="row gap12 items-start">
           <div className="grow">
             <Field label="Salida">
-              <input type="datetime-local" className={`${inputCls} mono`} value={start} onChange={(e) => setStart(e.target.value)} />
+              <DateTimePicker value={start} onChange={setStart} placeholder="Día y hora de salida" />
             </Field>
           </div>
           <div className="grow">
             <Field label="Regreso">
-              <input type="datetime-local" className={`${inputCls} mono`} value={end} onChange={(e) => setEnd(e.target.value)} />
+              <DateTimePicker value={end} onChange={setEnd} placeholder="Día y hora de regreso" />
             </Field>
           </div>
         </div>
