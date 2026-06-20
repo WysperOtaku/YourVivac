@@ -14,6 +14,8 @@ import { errMsg } from '@/lib/errMsg';
 import { fmtDateShort } from '@/lib/format';
 import { useTripRoom } from '@/hooks/useTripRoom';
 import { useAuthStore } from '@/stores/authStore';
+import { InviteMembersModal } from '@/components/InviteMembersModal';
+import { EditTripModal } from '@/components/EditTripModal';
 import { PinView } from './pins';
 import { AddPinModal } from './AddPinModal';
 
@@ -47,6 +49,8 @@ export function BoardScreen() {
   const isDesktop = useIsDesktop();
   const [view, setView] = useState<View>('mural');
   const [adding, setAdding] = useState(false);
+  const [inviteOpen, setInviteOpen] = useState(false);
+  const [editOpen, setEditOpen] = useState(false);
   const [droppedId, setDroppedId] = useState<string | null>(null);
 
   const tripQ = useQuery({ queryKey: ['trip', id], queryFn: () => api.trips.get(id), retry: false });
@@ -88,6 +92,7 @@ export function BoardScreen() {
   const pins = boardQ.data ?? [];
   const ordered = [...pins].sort((a, b) => a.layout.z - b.layout.z);
   const members = trip?.memberUsers ?? [];
+  const isOwner = String(trip?.owner ?? '') === me?.id;
   const nameOf = (pin: Pin) => members.find((m) => m.id === String(pin.authorId))?.displayName;
   const canEdit = (pin: Pin) => String(pin.authorId) === me?.id || String(trip?.owner) === me?.id;
   const pinProps = (pin: Pin) => ({
@@ -135,6 +140,23 @@ export function BoardScreen() {
       <Icon name="plus" size={18} /> Añadir pin
     </button>
   );
+
+  // Pila de avatares de miembros + acción de invitar (y editar si eres propietario).
+  const memberStack = (size: number) => (
+    <button className="row pr-1" onClick={() => setInviteOpen(true)} aria-label="Miembros e invitar">
+      {members.slice(0, 5).map((m) => (
+        <Avatar key={m.id} name={m.displayName} size={size} src={m.avatar?.url} ring me={m.id === me?.id} style={{ marginLeft: -7 }} className="overflow-hidden" />
+      ))}
+      <span className="grid flex-none place-items-center rounded-full bg-bg-3 text-ink-3 shadow-[inset_0_0_0_1px_var(--line-2)]" style={{ width: size, height: size, marginLeft: -7 }}>
+        <Icon name="plus" size={size * 0.5} />
+      </span>
+    </button>
+  );
+  const editBtn = isOwner ? (
+    <button className="text-ink-3" onClick={() => setEditOpen(true)} aria-label="Editar salida">
+      <Icon name="edit" size={19} />
+    </button>
+  ) : null;
 
   const emptyOrLoading = boardQ.isLoading ? (
     <div className="faint p-10 text-center text-sm">Cargando tablero…</div>
@@ -236,11 +258,8 @@ export function BoardScreen() {
           sub,
           actions: (
             <div className="row gap14">
-              <div className="row pr-1">
-                {members.slice(0, 4).map((m) => (
-                  <Avatar key={m.id} name={m.displayName} size={32} ring style={{ marginLeft: -7 }} />
-                ))}
-              </div>
+              {memberStack(32)}
+              {editBtn}
               {addBtn}
             </div>
           ),
@@ -257,6 +276,8 @@ export function BoardScreen() {
           </aside>
         </div>
         <AddPinModal open={adding} onClose={() => setAdding(false)} tripId={id} />
+        <InviteMembersModal open={inviteOpen} onClose={() => setInviteOpen(false)} tripId={id} existingIds={members.map((m) => m.id)} />
+        {trip && isOwner && <EditTripModal open={editOpen} onClose={() => setEditOpen(false)} trip={trip} />}
       </AppShell>
     );
   }
@@ -278,10 +299,9 @@ export function BoardScreen() {
               </div>
             </div>
           </div>
-          <div className="row pr-1">
-            {members.slice(0, 4).map((m) => (
-              <Avatar key={m.id} name={m.displayName} size={28} ring style={{ marginLeft: -7 }} />
-            ))}
+          <div className="row gap10">
+            {editBtn}
+            {memberStack(28)}
           </div>
         </div>
       </header>
@@ -311,6 +331,8 @@ export function BoardScreen() {
       </div>
 
       <AddPinModal open={adding} onClose={() => setAdding(false)} tripId={id} />
+      <InviteMembersModal open={inviteOpen} onClose={() => setInviteOpen(false)} tripId={id} existingIds={members.map((m) => m.id)} />
+      {trip && isOwner && <EditTripModal open={editOpen} onClose={() => setEditOpen(false)} trip={trip} />}
     </AppShell>
   );
 }

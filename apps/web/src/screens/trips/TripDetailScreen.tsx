@@ -9,6 +9,8 @@ import { api } from '@/lib/api';
 import { errMsg } from '@/lib/errMsg';
 import { fmtDateShort, tripDifficultyLabel, tripStatusLabel } from '@/lib/format';
 import { useAuthStore } from '@/stores/authStore';
+import { InviteMembersModal } from '@/components/InviteMembersModal';
+import { EditTripModal } from '@/components/EditTripModal';
 
 function Stat({ n, label, tone }: { n: string | number; label: string; tone?: string }) {
   return (
@@ -34,7 +36,8 @@ export function TripDetailScreen() {
   const navigate = useNavigate();
   const qc = useQueryClient();
   const me = useAuthStore((s) => s.user);
-  const [invite, setInvite] = useState('');
+  const [inviteOpen, setInviteOpen] = useState(false);
+  const [editOpen, setEditOpen] = useState(false);
 
   const { data: trip, isLoading } = useQuery({ queryKey: ['trip', id], queryFn: () => api.trips.get(id), retry: false });
 
@@ -43,15 +46,6 @@ export function TripDetailScreen() {
     qc.invalidateQueries({ queryKey: ['trips'] });
   };
 
-  const inviteMut = useMutation({
-    mutationFn: () => api.trips.invite(id, { users: invite.split(',').map((s) => s.trim()).filter(Boolean) }),
-    onSuccess: () => {
-      setInvite('');
-      invalidate();
-      toast.success('Invitaciones enviadas');
-    },
-    onError: (e) => toast.error(errMsg(e, 'No se pudo invitar')),
-  });
   const rsvpMut = useMutation({
     mutationFn: (rsvp: Rsvp) => api.trips.rsvp(id, { rsvp }),
     onSuccess: invalidate,
@@ -106,7 +100,20 @@ export function TripDetailScreen() {
               {fmtDateShort(trip.startDate)}–{fmtDateShort(trip.endDate)} · {trip.location?.name}
             </div>
           </div>
+          {isOwner && (
+            <button onClick={() => setEditOpen(true)} aria-label="Editar salida" className="text-ink-3">
+              <Icon name="edit" size={20} />
+            </button>
+          )}
         </header>
+
+        {isOwner && (
+          <div className="hidden justify-end pb-1 lg:flex">
+            <button className="btn btn--ghost px-4" onClick={() => setEditOpen(true)}>
+              <Icon name="edit" size={16} /> Editar salida
+            </button>
+          </div>
+        )}
 
         <div
           className="imgslot topo relative h-[180px] items-end rounded-card bg-cover bg-center"
@@ -161,25 +168,20 @@ export function TripDetailScreen() {
         {/* Montañeros */}
         <div className="spread mt-5">
           <span className="eyebrow">Montañeros · {members.length}</span>
+          <button className="accent row gap6 text-[13px]" onClick={() => setInviteOpen(true)}>
+            <Icon name="plus" size={15} /> Invitar
+          </button>
         </div>
         <div className="row gap10 mt-2.5 flex-wrap">
           {members.map((m) => (
-            <div key={m.id} className="row gap8 rounded-pill bg-bg-2 py-1.5 pl-1.5 pr-3.5 shadow-[inset_0_0_0_1px_var(--line)]">
-              <Avatar name={m.displayName} size={26} />
-              <span className="text-[13px]">{m.displayName}</span>
+            <div
+              key={m.id}
+              className={`row gap8 rounded-pill bg-bg-2 py-1.5 pl-1.5 pr-3.5 shadow-[inset_0_0_0_1px_var(--line)] ${m.id === me?.id ? 'shadow-[inset_0_0_0_1.5px_var(--accent)]' : ''}`}
+            >
+              <Avatar name={m.displayName} size={26} src={m.avatar?.url} me={m.id === me?.id} className="overflow-hidden" />
+              <span className="text-[13px]">{m.id === me?.id ? 'Tú' : m.displayName}</span>
             </div>
           ))}
-        </div>
-        <div className="row gap8 mt-3">
-          <input
-            className="grow rounded-control bg-bg-2 px-3.5 py-2.5 text-[14px] text-ink shadow-[inset_0_0_0_1px_var(--line)] outline-none placeholder:text-ink-3 focus:shadow-[inset_0_0_0_1.5px_var(--accent)]"
-            placeholder="Invitar por usuario o @handle…"
-            value={invite}
-            onChange={(e) => setInvite(e.target.value)}
-          />
-          <button className="btn px-4" onClick={() => inviteMut.mutate()} disabled={!invite.trim() || inviteMut.isPending}>
-            Invitar
-          </button>
         </div>
 
         <div className="row gap10 mt-6">
@@ -197,6 +199,9 @@ export function TripDetailScreen() {
           </button>
         )}
       </div>
+
+      <InviteMembersModal open={inviteOpen} onClose={() => setInviteOpen(false)} tripId={id} existingIds={members.map((m) => m.id)} />
+      {isOwner && <EditTripModal open={editOpen} onClose={() => setEditOpen(false)} trip={trip} />}
     </AppShell>
   );
 }

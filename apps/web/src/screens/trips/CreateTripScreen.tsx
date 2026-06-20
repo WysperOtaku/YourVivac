@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { createTripSchema } from '@yourvivac/validation';
-import type { CreateTripRequest, TripDifficulty, TripVisibility } from '@yourvivac/types';
+import type { CreateTripRequest, TripDifficulty, TripVisibility, UserSearchResult } from '@yourvivac/types';
 import { AppShell } from '@/components/AppShell';
 import { Icon } from '@/ui';
 import { api } from '@/lib/api';
@@ -11,6 +11,7 @@ import { errMsg } from '@/lib/errMsg';
 import { isMapsConfigured } from '@/lib/maps';
 import { LocationSearch } from '@/components/maps/LocationSearch';
 import { DateTimePicker } from '@/components/DateTimePicker';
+import { PeoplePicker } from '@/components/PeoplePicker';
 
 const DIFFS: { key: TripDifficulty; label: string }[] = [
   { key: 'facil', label: 'Fácil' },
@@ -44,7 +45,7 @@ export function CreateTripScreen() {
   const [visibility, setVisibility] = useState<TripVisibility>('private');
   const [distanceKm, setDistanceKm] = useState('');
   const [elevationGain, setElevationGain] = useState('');
-  const [invites, setInvites] = useState('');
+  const [invitees, setInvitees] = useState<UserSearchResult[]>([]);
 
   const createMut = useMutation({
     mutationFn: async () => {
@@ -63,9 +64,8 @@ export function CreateTripScreen() {
         throw new Error(parsed.error.issues[0]?.message ?? 'Revisa los campos');
       }
       const trip = await api.trips.create(payload);
-      const handles = invites.split(',').map((s) => s.trim()).filter(Boolean);
-      if (handles.length > 0) {
-        await api.trips.invite(trip.id, { users: handles }).catch(() => undefined);
+      if (invitees.length > 0) {
+        await api.trips.invite(trip.id, { users: invitees.map((u) => u.id) }).catch(() => undefined);
       }
       return trip;
     },
@@ -185,9 +185,12 @@ export function CreateTripScreen() {
             ))}
           </div>
         </Field>
-        <Field label="Invitar (usuarios o @handles, separados por comas)">
-          <input className={inputCls} placeholder="lucia, iker, ana" value={invites} onChange={(e) => setInvites(e.target.value)} />
-        </Field>
+        <div className="mb-4">
+          <span className="eyebrow">Invita a tu gente</span>
+          <div className="mt-2">
+            <PeoplePicker selected={invitees} onChange={setInvitees} />
+          </div>
+        </div>
 
         <div className="fixed inset-x-0 bottom-[68px] flex-none bg-bg-2 px-[18px] py-3 shadow-[inset_0_1px_0_var(--line)] lg:bottom-0 lg:left-60">
           <div className="mx-auto max-w-2xl">

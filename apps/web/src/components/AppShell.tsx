@@ -116,7 +116,7 @@ export function AppShell({ children, topbar, bareDesktop, mobileFullscreen }: Pr
               </form>
               <NotificationsBell />
               <button onClick={() => navigate('/perfil')} aria-label="Tu perfil">
-                <Avatar name={user?.displayName ?? 'Invitado'} size={36} />
+                <Avatar name={user?.displayName ?? 'Invitado'} size={36} src={user?.avatar?.url} me className="overflow-hidden" />
               </button>
               {topbar.actions}
             </div>
