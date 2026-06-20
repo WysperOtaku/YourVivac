@@ -57,6 +57,7 @@ const userSchema = new Schema(
       fontPair: { type: String, enum: ['a', 'b', 'c'], default: 'a' },
       units: { type: String, enum: ['metric', 'imperial'], default: 'metric' },
       defaultTripVisibility: { type: String, enum: ['private', 'public'], default: 'private' },
+      profileVisibility: { type: String, enum: ['private', 'public'], default: 'public' },
       notifications: {
         push: { type: Boolean, default: true },
         email: { type: Boolean, default: true },

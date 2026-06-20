@@ -44,6 +44,13 @@ export const guideApplySchema = z.object({
 export const updateUserSchema = z
   .object({
     displayName: z.string().min(2).max(60).optional(),
+    username: z
+      .string()
+      .min(3)
+      .max(30)
+      .regex(/^[a-z0-9_]+$/i, 'Solo letras, números y guion bajo')
+      .optional(),
+    email: z.string().email().optional(),
     bio: z.string().max(500).optional(),
     location: z
       .object({
@@ -54,6 +61,11 @@ export const updateUserSchema = z
   })
   .strict();
 
+export const changePasswordSchema = z.object({
+  currentPassword: z.string().optional(),
+  newPassword: z.string().min(8).max(128),
+});
+
 export const updateSettingsSchema = z
   .object({
     theme: z.enum(['dark', 'light']).optional(),
@@ -61,6 +73,7 @@ export const updateSettingsSchema = z
     fontPair: z.enum(['a', 'b', 'c']).optional(),
     units: z.enum(['metric', 'imperial']).optional(),
     defaultTripVisibility: z.enum(['private', 'public']).optional(),
+    profileVisibility: z.enum(['private', 'public']).optional(),
     notifications: z
       .object({
         push: z.boolean().optional(),

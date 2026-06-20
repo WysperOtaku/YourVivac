@@ -2,6 +2,9 @@ import { asyncHandler, HttpError } from '../../middleware/error.js';
 import { usersService } from './users.service.js';
 
 export const usersController = {
+  search: asyncHandler(async (req, res) => {
+    res.json(await usersService.search(String(req.query.q ?? '')));
+  }),
   profile: asyncHandler(async (req, res) => {
     res.json(await usersService.profile(req.params.username, req.user?.userId));
   }),

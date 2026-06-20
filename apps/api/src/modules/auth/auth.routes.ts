@@ -6,6 +6,7 @@ import {
   forgotPasswordSchema,
   resetPasswordSchema,
   verifyEmailSchema,
+  changePasswordSchema,
 } from '@yourvivac/validation';
 import { authGuard, validate, authRateLimit } from '../../middleware/index.js';
 import { authController } from './auth.controller.js';
@@ -22,4 +23,5 @@ authRouter.post('/logout', authController.logout);
 authRouter.post('/verify-email', validate(verifyEmailSchema), authController.verifyEmail);
 authRouter.post('/forgot-password', validate(forgotPasswordSchema), authController.forgotPassword);
 authRouter.post('/reset-password', validate(resetPasswordSchema), authController.resetPassword);
+authRouter.post('/change-password', authGuard, validate(changePasswordSchema), authController.changePassword);
 authRouter.get('/me', authGuard, authController.me);

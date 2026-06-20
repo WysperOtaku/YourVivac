@@ -1,4 +1,11 @@
-import type { Trip, Tip, UpdateUserRequest, UpdateSettingsRequest, UserProfileResponse } from '@yourvivac/types';
+import type {
+  Trip,
+  Tip,
+  UpdateUserRequest,
+  UpdateSettingsRequest,
+  UserProfileResponse,
+  UserSearchResult,
+} from '@yourvivac/types';
 import { UserModel } from '../../models/user.model.js';
 import { FollowModel } from '../../models/social.model.js';
 import { TripModel } from '../../models/trip.model.js';
@@ -14,6 +21,9 @@ export const usersService = {
   async profile(username: string, viewerId?: string): Promise<UserProfileResponse> {
     const user = await UserModel.findOne({ username });
     if (!user) throw HttpError.notFound('Usuario no encontrado');
+    if (user.settings?.profileVisibility === 'private' && viewerId !== String(user._id)) {
+      throw HttpError.forbidden('Este perfil es privado');
+    }
     const isFollowing = viewerId
       ? Boolean(await FollowModel.exists({ followerId: viewerId, followingId: user._id }))
       : undefined;
@@ -36,9 +46,35 @@ export const usersService = {
   },
 
   async updateMe(userId: string, patch: UpdateUserRequest) {
-    const user = await UserModel.findByIdAndUpdate(userId, patch, { new: true });
+    if (patch.username || patch.email) {
+      const conflict = await UserModel.findOne({
+        _id: { $ne: userId },
+        $or: [
+          ...(patch.username ? [{ username: patch.username }] : []),
+          ...(patch.email ? [{ email: patch.email }] : []),
+        ],
+      });
+      if (conflict) throw HttpError.conflict('Ese email o nombre de usuario ya está en uso');
+    }
+    const update: Record<string, unknown> = { ...patch };
+    if (patch.email) update.emailVerified = false; // re-verificar al cambiar email
+    const user = await UserModel.findByIdAndUpdate(userId, update, { new: true });
     if (!user) throw HttpError.notFound('Usuario no encontrado');
     return serializeDoc(user);
+  },
+
+  async search(q: string): Promise<UserSearchResult[]> {
+    const term = q?.trim();
+    if (!term || term.length < 2) return [];
+    const rx = { $regex: term, $options: 'i' };
+    const docs = await UserModel.find({ status: 'active', $or: [{ username: rx }, { displayName: rx }] }).limit(10);
+    return docs.map((u) => ({
+      id: String(u._id),
+      displayName: u.displayName,
+      username: u.username,
+      avatar: u.avatar ? { url: u.avatar.url ?? '', publicId: u.avatar.publicId ?? '' } : undefined,
+      role: u.role,
+    }));
   },
 
   async updateSettings(userId: string, patch: UpdateSettingsRequest) {

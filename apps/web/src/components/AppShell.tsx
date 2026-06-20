@@ -36,12 +36,20 @@ interface Props {
   topbar?: { title: string; sub?: string; actions?: ReactNode };
   /** Oculta la topbar de escritorio (pantallas que traen su propia cabecera). */
   bareDesktop?: boolean;
+  /** En móvil, oculta la tab bar inferior (subpáginas a pantalla completa). */
+  mobileFullscreen?: boolean;
 }
 
 /** Layout responsive: rail + topbar en escritorio (lg+), tab bar inferior en móvil. */
-export function AppShell({ children, topbar, bareDesktop }: Props) {
+export function AppShell({ children, topbar, bareDesktop, mobileFullscreen }: Props) {
   const navigate = useNavigate();
   const user = useAuthStore((s) => s.user);
+
+  function submitSearch(e: React.FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+    const q = new FormData(e.currentTarget).get('q')?.toString().trim();
+    if (q) navigate(`/buscar?q=${encodeURIComponent(q)}`);
+  }
 
   return (
     <div className="flex h-full bg-bg">
@@ -98,22 +106,31 @@ export function AppShell({ children, topbar, bareDesktop }: Props) {
               <h2 className="mt-1 text-[25px]">{topbar.title}</h2>
             </div>
             <div className="row gap14">
-              <div className="row gap10 w-60 rounded-[11px] bg-bg-2 px-3.5 py-2.5 shadow-[inset_0_0_0_1px_var(--line)]">
+              <form onSubmit={submitSearch} className="row gap10 w-64 rounded-[11px] bg-bg-2 px-3.5 py-2.5 shadow-[inset_0_0_0_1px_var(--line)]">
                 <Icon name="search" size={18} className="text-ink-3" />
-                <span className="faint text-sm">Buscar…</span>
-              </div>
+                <input
+                  name="q"
+                  className="grow bg-transparent text-sm text-ink outline-none placeholder:text-ink-3"
+                  placeholder="Buscar usuarios, salidas, consejos…"
+                />
+              </form>
               <NotificationsBell />
-              <Avatar name={user?.displayName ?? 'Invitado'} size={36} />
+              <button onClick={() => navigate('/perfil')} aria-label="Tu perfil">
+                <Avatar name={user?.displayName ?? 'Invitado'} size={36} />
+              </button>
               {topbar.actions}
             </div>
           </header>
         )}
 
         {/* Contenido scrollable */}
-        <div className="flex-1 overflow-y-auto pb-24 lg:pb-0">{children}</div>
+        <div className={cn('flex-1 overflow-y-auto lg:pb-0', mobileFullscreen ? 'pb-0' : 'pb-24')}>{children}</div>
 
         {/* Tab bar inferior (móvil) */}
-        <nav className="fixed inset-x-0 bottom-0 z-40 flex items-center justify-around bg-bg-2 px-2 pt-2.5 pb-[max(0.5rem,env(safe-area-inset-bottom))] shadow-[inset_0_1px_0_var(--line)] lg:hidden">
+        <nav className={cn(
+          'fixed inset-x-0 bottom-0 z-40 flex items-center justify-around bg-bg-2 px-2 pt-2.5 pb-[max(0.5rem,env(safe-area-inset-bottom))] shadow-[inset_0_1px_0_var(--line)] lg:hidden',
+          mobileFullscreen && 'hidden',
+        )}>
           {TABS.map((t) =>
             t.center ? (
               <NavLink key={t.to} to={t.to} className="flex-none">

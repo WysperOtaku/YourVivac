@@ -76,6 +76,7 @@ export interface UserSettings {
   fontPair: FontPair;
   units: Units;
   defaultTripVisibility: TripVisibility;
+  profileVisibility: TripVisibility;
   notifications: NotificationSettings;
 }
 

@@ -10,6 +10,8 @@ import { errMsg } from '@/lib/errMsg';
 import { useUiStore } from '@/stores/uiStore';
 import { useAuthStore } from '@/stores/authStore';
 import { GuideApplyModal } from './GuideApplyModal';
+import { EditProfileModal } from './EditProfileModal';
+import { PrivacyModal } from './PrivacyModal';
 
 function Group({ label, children }: { label: string; children: React.ReactNode }) {
   return (
@@ -57,6 +59,8 @@ export function SettingsScreen() {
   const { theme, toggleTheme } = useUiStore();
   const { user, clear, setUser } = useAuthStore();
   const [guideOpen, setGuideOpen] = useState(false);
+  const [editOpen, setEditOpen] = useState(false);
+  const [privacyOpen, setPrivacyOpen] = useState(false);
   const settings = user?.settings;
 
   const settingsMut = useMutation({
@@ -76,15 +80,21 @@ export function SettingsScreen() {
   }
 
   return (
-    <AppShell topbar={{ title: 'Ajustes', sub: 'Cuenta' }}>
-      <div className="mx-auto w-full max-w-2xl px-[18px] pb-6 lg:px-7 lg:pt-4">
+    <AppShell topbar={{ title: 'Ajustes', sub: 'Cuenta' }} mobileFullscreen>
+      {/* Cabecera móvil */}
+      <header className="row gap10 flex-none px-[18px] pb-1 pt-2 lg:hidden">
+        <button onClick={() => navigate(-1)} aria-label="Volver"><Icon name="back" size={26} /></button>
+        <h1 className="text-[22px]">Ajustes</h1>
+      </header>
+
+      <div className="mx-auto w-full max-w-2xl px-[18px] pb-10 pt-2 lg:px-7 lg:pt-4">
         <div className="card row gap14 mb-[18px] p-3.5">
-          <Avatar name={user?.displayName ?? 'Marcos Vidal'} size={54} ring style={{ fontSize: 20 }} />
-          <div className="grow">
-            <div className="font-display text-[19px]">{user?.displayName ?? 'Marcos Vidal'}</div>
-            <div className="faint mono mt-0.5 text-[11.5px]">{user?.email ?? 'marcos.vidal@gmail.com'}</div>
+          <Avatar name={user?.displayName ?? 'Tú'} size={54} ring src={user?.avatar?.url} className="overflow-hidden" style={{ fontSize: 20 }} />
+          <div className="grow min-w-0">
+            <div className="font-display text-[19px]">{user?.displayName ?? 'Tú'}</div>
+            <div className="faint mono mt-0.5 truncate text-[11.5px]">{user?.email}</div>
           </div>
-          <span className="chip cursor-pointer">Editar</span>
+          <button className="chip" onClick={() => setEditOpen(true)}>Editar</button>
         </div>
 
         <Group label="Cuenta">
@@ -96,7 +106,9 @@ export function SettingsScreen() {
               <Row icon="shield" t="Solicitar rol de guía" sub="Verifica tu titulación" tone="var(--terra)" right={<span className="chip chip--terra">Nuevo</span>} />
             </div>
           )}
-          <Row icon="lock" t="Privacidad y seguridad" last />
+          <div className="cursor-pointer" onClick={() => setPrivacyOpen(true)}>
+            <Row icon="lock" t="Privacidad y seguridad" sub="Email, contraseña y visibilidad" last />
+          </div>
         </Group>
 
         <Group label="Preferencias">
@@ -161,8 +173,12 @@ export function SettingsScreen() {
         </Group>
 
         <Group label="Soporte">
-          <Row icon="chat" t="Centro de ayuda" />
-          <Row icon="note" t="Términos y privacidad" last />
+          <div className="cursor-pointer" onClick={() => navigate('/ayuda')}>
+            <Row icon="chat" t="Centro de ayuda" />
+          </div>
+          <div className="cursor-pointer" onClick={() => navigate('/terminos')}>
+            <Row icon="note" t="Términos y privacidad" last />
+          </div>
         </Group>
 
         <button
@@ -175,6 +191,8 @@ export function SettingsScreen() {
         <p className="faint mono mt-3.5 text-center text-[11px]">YourVivac · v1.0.0</p>
       </div>
       <GuideApplyModal open={guideOpen} onClose={() => setGuideOpen(false)} />
+      <EditProfileModal open={editOpen} onClose={() => setEditOpen(false)} />
+      <PrivacyModal open={privacyOpen} onClose={() => setPrivacyOpen(false)} />
     </AppShell>
   );
 }

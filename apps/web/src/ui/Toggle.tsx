@@ -15,14 +15,14 @@ export function Toggle({ checked, onChange, label }: Props) {
       aria-label={label}
       onClick={() => onChange(!checked)}
       className={cn(
-        'relative h-6 w-11 rounded-pill transition-colors',
+        'relative inline-flex h-6 w-11 flex-none items-center rounded-full transition-colors',
         checked ? 'bg-accent' : 'bg-bg-4 shadow-[inset_0_0_0_1px_var(--line-2)]',
       )}
     >
       <span
         className={cn(
-          'absolute top-0.5 h-5 w-5 rounded-full bg-bg transition-transform',
-          checked ? 'translate-x-[22px]' : 'translate-x-0.5',
+          'inline-block h-[18px] w-[18px] transform rounded-full bg-bg shadow transition-transform',
+          checked ? 'translate-x-[23px]' : 'translate-x-[3px]',
         )}
       />
     </button>

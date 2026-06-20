@@ -71,7 +71,7 @@ export function HomeScreen() {
       <header className="spread flex-none px-[18px] pb-3 pt-1.5 lg:hidden">
         <Logo size={19} />
         <div className="row gap14">
-          <button onClick={() => navigate('/explorar')} aria-label="Explorar">
+          <button onClick={() => navigate('/buscar')} aria-label="Buscar">
             <Icon name="search" size={22} />
           </button>
           <NotificationsBell />

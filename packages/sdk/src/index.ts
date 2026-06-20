@@ -5,6 +5,7 @@ import type {
   AdminUpdateUserRequest,
   AggregatedProduct,
   AuthResponse,
+  ChangePasswordRequest,
   CreateGearListRequest,
   CreatePinRequest,
   CreateTipRequest,
@@ -38,6 +39,7 @@ import type {
   UpdateUserRequest,
   User,
   UserProfileResponse,
+  UserSearchResult,
   VerifyEmailRequest,
 } from '@yourvivac/types';
 
@@ -76,6 +78,7 @@ export function createApiClient(options: ApiClientOptions) {
       refresh: () => data<{ accessToken: string }>(http.post('/auth/refresh')),
       logout: () => data<void>(http.post('/auth/logout')),
       me: () => data<User>(http.get('/auth/me')),
+      changePassword: (b: ChangePasswordRequest) => data<{ ok: true }>(http.post('/auth/change-password', b)),
       verifyEmail: (b: VerifyEmailRequest) => data<{ ok: true }>(http.post('/auth/verify-email', b)),
       forgotPassword: (b: ForgotPasswordRequest) =>
         data<{ ok: true }>(http.post('/auth/forgot-password', b)),
@@ -86,6 +89,7 @@ export function createApiClient(options: ApiClientOptions) {
     users: {
       profile: (username: string) =>
         data<UserProfileResponse>(http.get(`/users/${username}`)),
+      search: (q: string) => data<UserSearchResult[]>(http.get('/users/search', { params: { q } })),
       updateMe: (b: UpdateUserRequest) => data<User>(http.patch('/users/me', b)),
       updateSettings: (b: UpdateSettingsRequest) =>
         data<User>(http.patch('/users/me/settings', b)),

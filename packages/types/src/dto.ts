@@ -47,8 +47,14 @@ export interface VerifyEmailRequest {
 // --- Users / settings / social ---
 export interface UpdateUserRequest {
   displayName?: string;
+  username?: string;
+  email?: string;
   bio?: string;
   location?: { name: string; coords?: GeoCoords };
+}
+export interface ChangePasswordRequest {
+  currentPassword?: string;
+  newPassword: string;
 }
 export interface UpdateSettingsRequest {
   theme?: ThemeName;
@@ -56,7 +62,15 @@ export interface UpdateSettingsRequest {
   fontPair?: FontPair;
   units?: Units;
   defaultTripVisibility?: TripVisibility;
+  profileVisibility?: TripVisibility;
   notifications?: Partial<User['settings']['notifications']>;
+}
+export interface UserSearchResult {
+  id: Id;
+  displayName: string;
+  username: string;
+  avatar?: MediaRef;
+  role: 'user' | 'guide' | 'admin';
 }
 export interface UserProfileResponse {
   user: PublicUser & Pick<User, 'bio' | 'location' | 'stats' | 'achievements' | 'counts'>;

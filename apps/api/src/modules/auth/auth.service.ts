@@ -203,6 +203,23 @@ export const authService = {
     await SessionModel.updateMany({ userId: payload.userId, revokedAt: null }, { revokedAt: new Date() });
   },
 
+  async changePassword(userId: string, current: string | undefined, next: string): Promise<void> {
+    const user = await UserModel.findById(userId).select('+passwordHash');
+    if (!user) throw HttpError.notFound('Usuario no encontrado');
+    if (user.passwordHash) {
+      if (!current) throw HttpError.badRequest('Falta la contraseña actual');
+      const ok = await verifyPassword(current, user.passwordHash);
+      if (!ok) throw HttpError.unauthorized('La contraseña actual no es correcta');
+    }
+    user.passwordHash = await hashPassword(next);
+    if (!user.authProviders.some((p) => p.provider === 'password')) {
+      user.authProviders.push({ provider: 'password', linkedAt: new Date() });
+    }
+    await user.save();
+    // Revoca el resto de sesiones tras cambiar la contraseña.
+    await SessionModel.updateMany({ userId, revokedAt: null }, { revokedAt: new Date() });
+  },
+
   async me(userId: string): Promise<User> {
     const user = await UserModel.findById(userId);
     if (!user) throw HttpError.notFound('Usuario no encontrado');

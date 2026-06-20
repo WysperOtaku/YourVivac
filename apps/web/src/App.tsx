@@ -14,6 +14,9 @@ import { TipsScreen } from '@/screens/tips/TipsScreen';
 import { ProfileScreen } from '@/screens/profile/ProfileScreen';
 import { SettingsScreen } from '@/screens/settings/SettingsScreen';
 import { AdminScreen } from '@/screens/admin/AdminScreen';
+import { SearchScreen } from '@/screens/search/SearchScreen';
+import { HelpScreen } from '@/screens/support/HelpScreen';
+import { TermsScreen } from '@/screens/support/TermsScreen';
 
 /** Envuelve una pantalla privada con el guard de sesión. */
 function Private({ children }: { children: React.ReactNode }) {
@@ -36,6 +39,9 @@ export default function App() {
       <Route path="/perfil" element={<Private><ProfileScreen /></Private>} />
       <Route path="/u/:username" element={<Private><ProfileScreen /></Private>} />
       <Route path="/ajustes" element={<Private><SettingsScreen /></Private>} />
+      <Route path="/buscar" element={<Private><SearchScreen /></Private>} />
+      <Route path="/ayuda" element={<Private><HelpScreen /></Private>} />
+      <Route path="/terminos" element={<Private><TermsScreen /></Private>} />
       <Route
         path="/admin"
         element={
