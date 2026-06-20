@@ -44,6 +44,15 @@
   background-attachment: local;
 }
 
+/* Topografía del login: UN solo sistema concéntrico a pantalla completa, amplio y
+   tenue (curvas de nivel). Un único centro evita el cruce de aros. */
+.topo-login {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background-image: repeating-radial-gradient(circle at 62% -4%, transparent 0 53px, var(--topo) 53px 54px);
+}
+
 /* ---- marcador de imagen ---- */
 .imgslot {
   position: relative;

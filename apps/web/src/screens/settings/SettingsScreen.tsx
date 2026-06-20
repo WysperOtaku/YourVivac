@@ -54,7 +54,7 @@ function Row({
 
 export function SettingsScreen() {
   const navigate = useNavigate();
-  const { theme, setTheme } = useUiStore();
+  const { theme, toggleTheme } = useUiStore();
   const { user, clear, setUser } = useAuthStore();
   const [guideOpen, setGuideOpen] = useState(false);
   const settings = user?.settings;
@@ -124,19 +124,25 @@ export function SettingsScreen() {
             }
           />
           <Row
-            icon="image"
-            t="Tema oscuro"
-            sub={theme === 'dark' ? 'Oscuro' : 'Claro'}
+            icon="mountain-snow"
+            t="Tema"
+            sub={theme === 'dark' ? 'Vivac nocturno' : 'Amanecer'}
             right={
-              <Toggle
-                checked={theme === 'dark'}
-                onChange={(v) => {
-                  const next = v ? 'dark' : 'light';
-                  setTheme(next);
-                  settingsMut.mutate({ theme: next });
-                }}
-                label="tema"
-              />
+              <button
+                onClick={toggleTheme}
+                className="row gap8 rounded-pill bg-bg-3 py-1.5 pl-3 pr-3.5 shadow-[inset_0_0_0_1px_var(--line)]"
+                aria-label="Cambiar tema"
+              >
+                <span className="relative grid place-items-center">
+                  <Icon name="mountain-snow" size={18} className="text-accent" />
+                  <Icon
+                    name={theme === 'dark' ? 'moon' : 'sun'}
+                    size={11}
+                    className={`absolute -right-2 -top-1.5 ${theme === 'dark' ? 'text-sky' : 'text-terra'}`}
+                  />
+                </span>
+                <span className="mono text-[12px]">{theme === 'dark' ? 'Oscuro' : 'Claro'}</span>
+              </button>
             }
           />
           <Row

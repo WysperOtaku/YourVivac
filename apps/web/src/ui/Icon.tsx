@@ -44,6 +44,9 @@ import {
   Trash2,
   Layers,
   ThumbsUp,
+  Sun,
+  Moon,
+  MountainSnow,
   type LucideIcon,
 } from 'lucide-react';
 
@@ -94,6 +97,9 @@ const MAP: Record<string, LucideIcon> = {
   trash: Trash2,
   layers: Layers,
   thumb: ThumbsUp,
+  sun: Sun,
+  moon: Moon,
+  'mountain-snow': MountainSnow,
 };
 
 export type IconName = keyof typeof MAP;

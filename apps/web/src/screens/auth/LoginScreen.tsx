@@ -22,12 +22,20 @@ function GoogleG({ size = 20 }: { size?: number }) {
   );
 }
 
-type Mode = 'login' | 'register';
+function Brand({ size = 20 }: { size?: number }) {
+  return (
+    <div className="stack gap8">
+      <span className="imgslot__tag inline-block self-start">foto · vivac nocturno</span>
+      <Logo size={size} />
+    </div>
+  );
+}
 
 export function LoginScreen() {
   const navigate = useNavigate();
   const { user, setAuth } = useAuthStore();
-  const [mode, setMode] = useState<Mode>('login');
+  const [view, setView] = useState<'choice' | 'email'>('choice');
+  const [authMode, setAuthMode] = useState<'login' | 'register'>('login');
   const [busy, setBusy] = useState(false);
 
   const loginForm = useForm<LoginRequest>({ resolver: zodResolver(loginSchema) });
@@ -80,23 +88,28 @@ export function LoginScreen() {
   }
 
   return (
-    <div className="relative flex h-full flex-col overflow-hidden lg:flex-row">
-      {/* Portada */}
-      <div className="imgslot topo relative h-[34%] w-full items-start lg:h-full lg:w-1/2">
-        <span className="imgslot__tag m-3.5">foto · vivac nocturno</span>
-        <div className="absolute left-7 top-8 lg:top-10">
-          <Logo size={20} />
+    <div className="relative flex h-full flex-col overflow-hidden bg-bg lg:flex-row">
+      {/* MÓVIL: fondo topográfico a pantalla completa */}
+      <div className="absolute inset-0 bg-gradient-to-b from-bg-2 to-bg lg:hidden" />
+      <div className="topo-login lg:hidden" />
+
+      {/* ESCRITORIO: panel topográfico a la izquierda */}
+      <div className="relative hidden flex-1 bg-gradient-to-b from-bg-2 to-bg lg:block">
+        <div className="topo-login" />
+        <div className="absolute left-8 top-8">
+          <Brand size={22} />
         </div>
-        {/* Difuminado hacia el contenido (como la máscara del diseño) */}
-        <div className="pointer-events-none absolute inset-x-0 bottom-0 h-24 bg-gradient-to-b from-transparent to-[var(--bg)] lg:hidden" />
-        <div className="pointer-events-none absolute inset-y-0 right-0 hidden w-24 bg-gradient-to-r from-transparent to-[var(--bg)] lg:block" />
       </div>
 
       {/* Contenido */}
-      <div className="relative flex flex-1 flex-col justify-center px-7 pb-8 pt-6 lg:px-16">
-        <div className="mx-auto w-full max-w-md">
+      <div className="relative z-10 flex flex-1 flex-col lg:max-w-[560px] lg:justify-center">
+        <div className="px-7 pt-7 lg:hidden">
+          <Brand size={20} />
+        </div>
+
+        <div className="mx-auto mt-auto w-full max-w-md px-7 pb-8 lg:my-auto lg:px-14">
           <div className="eyebrow mb-3.5">El campamento base de tus salidas</div>
-          <h1 className="text-[34px] leading-[0.98] tracking-[-0.02em] lg:text-[44px]">
+          <h1 className="text-[38px] leading-[0.98] tracking-[-0.02em] lg:text-[46px]">
             Planifica tu vivac.
             <br />
             <span className="text-accent">Reúne</span> a tu gente.
@@ -105,87 +118,60 @@ export function LoginScreen() {
             Crea la excursión, invita a tus amigos y montad juntos el tablero: rutas, listas de equipo y mapas en un mismo sitio.
           </p>
 
-          <button
-            className="btn btn--block btn--lg shadow mt-6"
-            style={{ background: '#fff', color: '#1a1a1a' }}
-            onClick={onGoogle}
-            disabled={busy}
-          >
-            <GoogleG size={20} /> Continuar con Google
-          </button>
-
-          <div className="row gap10 my-4 text-ink-3">
-            <span className="h-px grow bg-[var(--line)]" />
-            <span className="mono text-[11px]">o con tu correo</span>
-            <span className="h-px grow bg-[var(--line)]" />
-          </div>
-
-          {mode === 'login' ? (
-            <form className="stack gap12" onSubmit={loginForm.handleSubmit(onLogin)}>
-              <Field
-                label="Correo"
-                type="email"
-                placeholder="tu@correo.com"
-                error={loginForm.formState.errors.email?.message}
-                {...loginForm.register('email')}
-              />
-              <Field
-                label="Contraseña"
-                type="password"
-                placeholder="••••••••"
-                error={loginForm.formState.errors.password?.message}
-                {...loginForm.register('password')}
-              />
-              <button className="btn btn--block btn--lg" type="submit" disabled={busy}>
-                <Icon name="user" size={18} /> {busy ? 'Entrando…' : 'Entrar'}
+          {view === 'choice' ? (
+            <div className="stack gap10 mt-7">
+              <button
+                className="btn btn--block btn--lg shadow"
+                style={{ background: '#fff', color: '#1a1a1a' }}
+                onClick={onGoogle}
+                disabled={busy}
+              >
+                <GoogleG size={20} /> Continuar con Google
               </button>
-            </form>
+              <button className="btn btn--ghost btn--block btn--lg" onClick={() => setView('email')} disabled={busy}>
+                <Icon name="user" size={18} /> Continuar con correo
+              </button>
+            </div>
           ) : (
-            <form className="stack gap12" onSubmit={registerForm.handleSubmit(onRegister)}>
-              <Field
-                label="Nombre"
-                placeholder="Marcos Vidal"
-                error={registerForm.formState.errors.displayName?.message}
-                {...registerForm.register('displayName')}
-              />
-              <Field
-                label="Usuario"
-                placeholder="marcosvidal"
-                error={registerForm.formState.errors.username?.message}
-                {...registerForm.register('username')}
-              />
-              <Field
-                label="Correo"
-                type="email"
-                placeholder="tu@correo.com"
-                error={registerForm.formState.errors.email?.message}
-                {...registerForm.register('email')}
-              />
-              <Field
-                label="Contraseña"
-                type="password"
-                placeholder="mínimo 8 caracteres"
-                error={registerForm.formState.errors.password?.message}
-                {...registerForm.register('password')}
-              />
-              <button className="btn btn--block btn--lg" type="submit" disabled={busy}>
-                <Icon name="user" size={18} /> {busy ? 'Creando…' : 'Crear cuenta'}
+            <div className="mt-6">
+              <button
+                type="button"
+                className="row gap6 faint mb-4 text-[13px]"
+                onClick={() => setView('choice')}
+              >
+                <Icon name="back" size={16} /> Volver
               </button>
-            </form>
+
+              {authMode === 'login' ? (
+                <form className="stack gap12" onSubmit={loginForm.handleSubmit(onLogin)}>
+                  <Field label="Correo" type="email" placeholder="tu@correo.com" error={loginForm.formState.errors.email?.message} {...loginForm.register('email')} />
+                  <Field label="Contraseña" type="password" placeholder="••••••••" error={loginForm.formState.errors.password?.message} {...loginForm.register('password')} />
+                  <button className="btn btn--block btn--lg" type="submit" disabled={busy}>
+                    <Icon name="user" size={18} /> {busy ? 'Entrando…' : 'Entrar'}
+                  </button>
+                </form>
+              ) : (
+                <form className="stack gap12" onSubmit={registerForm.handleSubmit(onRegister)}>
+                  <Field label="Nombre" placeholder="Marcos Vidal" error={registerForm.formState.errors.displayName?.message} {...registerForm.register('displayName')} />
+                  <Field label="Usuario" placeholder="marcosvidal" error={registerForm.formState.errors.username?.message} {...registerForm.register('username')} />
+                  <Field label="Correo" type="email" placeholder="tu@correo.com" error={registerForm.formState.errors.email?.message} {...registerForm.register('email')} />
+                  <Field label="Contraseña" type="password" placeholder="mínimo 8 caracteres" error={registerForm.formState.errors.password?.message} {...registerForm.register('password')} />
+                  <button className="btn btn--block btn--lg" type="submit" disabled={busy}>
+                    <Icon name="user" size={18} /> {busy ? 'Creando…' : 'Crear cuenta'}
+                  </button>
+                </form>
+              )}
+
+              <p className="muted mt-4 text-center text-[13.5px]">
+                {authMode === 'login' ? '¿Aún no tienes cuenta? ' : '¿Ya tienes cuenta? '}
+                <button type="button" className="text-accent underline-offset-2 hover:underline" onClick={() => setAuthMode((m) => (m === 'login' ? 'register' : 'login'))}>
+                  {authMode === 'login' ? 'Crea una' : 'Entra'}
+                </button>
+              </p>
+            </div>
           )}
 
-          <p className="muted mt-4 text-center text-[13.5px]">
-            {mode === 'login' ? '¿Aún no tienes cuenta? ' : '¿Ya tienes cuenta? '}
-            <button
-              type="button"
-              className="text-accent underline-offset-2 hover:underline"
-              onClick={() => setMode((m) => (m === 'login' ? 'register' : 'login'))}
-            >
-              {mode === 'login' ? 'Crea una' : 'Entra'}
-            </button>
-          </p>
-
-          <p className="faint mt-4 text-center text-xs leading-relaxed">
+          <p className="faint mt-5 text-center text-xs leading-relaxed">
             Al continuar aceptas los <u>Términos</u> y la <u>Política de privacidad</u> de YourVivac.
           </p>
         </div>
