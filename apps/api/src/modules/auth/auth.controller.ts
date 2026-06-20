@@ -1,13 +1,14 @@
 import type { CookieOptions, Request, Response } from 'express';
 import { asyncHandler } from '../../middleware/error.js';
-import { isProd } from '../../config/env.js';
+import { env, isProd } from '../../config/env.js';
 import { authService } from './auth.service.js';
 
 const REFRESH_COOKIE = 'yv_refresh';
 const cookieOpts: CookieOptions = {
   httpOnly: true,
-  sameSite: 'lax',
-  secure: isProd,
+  // En local sobre http: sameSite=lax + secure=false. En prod cross-site: none + secure.
+  sameSite: env.COOKIE_SAMESITE ?? 'lax',
+  secure: env.COOKIE_SECURE ?? isProd,
   path: '/api/v1/auth',
   maxAge: 30 * 24 * 60 * 60 * 1000,
 };

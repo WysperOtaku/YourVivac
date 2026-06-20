@@ -44,6 +44,9 @@ services:
       JWT_ACCESS_SECRET: dev-access-secret-change-me
       JWT_REFRESH_SECRET: dev-refresh-secret-change-me
       CORS_ORIGINS: http://localhost:8080,http://localhost:5173
+      # Local va por http → la cookie NO puede ser Secure (el navegador la descartaría).
+      COOKIE_SECURE: 'false'
+      COOKIE_SAMESITE: lax
       # Servicios externos (se toman del entorno del host / .env junto al compose).
       # Firebase Admin verifica el idToken de Google Sign-In.
       FIREBASE_PROJECT_ID: ${FIREBASE_PROJECT_ID:-}

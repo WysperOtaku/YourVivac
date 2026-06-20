@@ -35,6 +35,14 @@ const envSchema = z.object({
   MODERATION_PROVIDER_KEY: z.string().optional(),
 
   CORS_ORIGINS: z.string().default('http://localhost:5173,http://localhost:19006'),
+
+  // Cookie de refresh. En local sobre http debe ser secure=false (si no, el navegador
+  // la descarta). En producción cross-site (https): secure=true, sameSite=none.
+  COOKIE_SECURE: z
+    .enum(['true', 'false'])
+    .optional()
+    .transform((v) => (v === undefined ? undefined : v === 'true')),
+  COOKIE_SAMESITE: z.enum(['lax', 'strict', 'none']).optional(),
 });
 
 const parsed = envSchema.safeParse(process.env);

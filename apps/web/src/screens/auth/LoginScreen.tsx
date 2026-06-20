@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Navigate, useNavigate } from 'react-router-dom';
@@ -22,18 +22,22 @@ function GoogleG({ size = 20 }: { size?: number }) {
   );
 }
 
-function Brand({ size = 20 }: { size?: number }) {
-  return (
-    <div className="stack gap8">
-      <span className="imgslot__tag inline-block self-start">foto · vivac nocturno</span>
-      <Logo size={size} />
-    </div>
-  );
+/** True en viewport de escritorio (>=1024px). */
+function useIsDesktop() {
+  const [d, setD] = useState(() => typeof window !== 'undefined' && window.matchMedia('(min-width: 1024px)').matches);
+  useEffect(() => {
+    const m = window.matchMedia('(min-width: 1024px)');
+    const h = () => setD(m.matches);
+    m.addEventListener('change', h);
+    return () => m.removeEventListener('change', h);
+  }, []);
+  return d;
 }
 
 export function LoginScreen() {
   const navigate = useNavigate();
   const { user, setAuth } = useAuthStore();
+  const isDesktop = useIsDesktop();
   const [view, setView] = useState<'choice' | 'email'>('choice');
   const [authMode, setAuthMode] = useState<'login' | 'register'>('login');
   const [busy, setBusy] = useState(false);
@@ -87,6 +91,55 @@ export function LoginScreen() {
     }
   }
 
+  const googleButton = (
+    <button
+      className="btn btn--block btn--lg shadow"
+      style={{ background: '#fff', color: '#1a1a1a' }}
+      onClick={onGoogle}
+      disabled={busy}
+    >
+      <GoogleG size={20} /> Continuar con Google
+    </button>
+  );
+
+  const divider = (
+    <div className="row gap10 my-4 text-ink-3">
+      <span className="h-px grow bg-[var(--line)]" />
+      <span className="mono text-[11px]">o con tu correo</span>
+      <span className="h-px grow bg-[var(--line)]" />
+    </div>
+  );
+
+  const emailForm = (
+    <>
+      {authMode === 'login' ? (
+        <form className="stack gap12" onSubmit={loginForm.handleSubmit(onLogin)}>
+          <Field label="Correo" type="email" placeholder="tu@correo.com" error={loginForm.formState.errors.email?.message} {...loginForm.register('email')} />
+          <Field label="Contraseña" type="password" placeholder="••••••••" error={loginForm.formState.errors.password?.message} {...loginForm.register('password')} />
+          <button className="btn btn--block btn--lg" type="submit" disabled={busy}>
+            <Icon name="user" size={18} /> {busy ? 'Entrando…' : 'Entrar'}
+          </button>
+        </form>
+      ) : (
+        <form className="stack gap12" onSubmit={registerForm.handleSubmit(onRegister)}>
+          <Field label="Nombre" placeholder="Marcos Vidal" error={registerForm.formState.errors.displayName?.message} {...registerForm.register('displayName')} />
+          <Field label="Usuario" placeholder="marcosvidal" error={registerForm.formState.errors.username?.message} {...registerForm.register('username')} />
+          <Field label="Correo" type="email" placeholder="tu@correo.com" error={registerForm.formState.errors.email?.message} {...registerForm.register('email')} />
+          <Field label="Contraseña" type="password" placeholder="mínimo 8 caracteres" error={registerForm.formState.errors.password?.message} {...registerForm.register('password')} />
+          <button className="btn btn--block btn--lg" type="submit" disabled={busy}>
+            <Icon name="user" size={18} /> {busy ? 'Creando…' : 'Crear cuenta'}
+          </button>
+        </form>
+      )}
+      <p className="muted mt-4 text-center text-[13.5px]">
+        {authMode === 'login' ? '¿Aún no tienes cuenta? ' : '¿Ya tienes cuenta? '}
+        <button type="button" className="text-accent underline-offset-2 hover:underline" onClick={() => setAuthMode((m) => (m === 'login' ? 'register' : 'login'))}>
+          {authMode === 'login' ? 'Crea una' : 'Entra'}
+        </button>
+      </p>
+    </>
+  );
+
   return (
     <div className="relative flex h-full flex-col overflow-hidden bg-bg lg:flex-row">
       {/* MÓVIL: fondo topográfico a pantalla completa */}
@@ -97,14 +150,14 @@ export function LoginScreen() {
       <div className="relative hidden flex-1 bg-gradient-to-b from-bg-2 to-bg lg:block">
         <div className="topo-login" />
         <div className="absolute left-8 top-8">
-          <Brand size={22} />
+          <Logo size={22} />
         </div>
       </div>
 
       {/* Contenido */}
       <div className="relative z-10 flex flex-1 flex-col lg:max-w-[560px] lg:justify-center">
         <div className="px-7 pt-7 lg:hidden">
-          <Brand size={20} />
+          <Logo size={20} />
         </div>
 
         <div className="mx-auto mt-auto w-full max-w-md px-7 pb-8 lg:my-auto lg:px-14">
@@ -118,58 +171,28 @@ export function LoginScreen() {
             Crea la excursión, invita a tus amigos y montad juntos el tablero: rutas, listas de equipo y mapas en un mismo sitio.
           </p>
 
-          {view === 'choice' ? (
-            <div className="stack gap10 mt-7">
-              <button
-                className="btn btn--block btn--lg shadow"
-                style={{ background: '#fff', color: '#1a1a1a' }}
-                onClick={onGoogle}
-                disabled={busy}
-              >
-                <GoogleG size={20} /> Continuar con Google
-              </button>
-              <button className="btn btn--ghost btn--block btn--lg" onClick={() => setView('email')} disabled={busy}>
+          {/* ESCRITORIO: Google + formulario directamente.
+              MÓVIL: dos botones y "correo" abre el formulario. */}
+          <div className="mt-7">
+            {googleButton}
+            {isDesktop ? (
+              <>
+                {divider}
+                {emailForm}
+              </>
+            ) : view === 'choice' ? (
+              <button className="btn btn--ghost btn--block btn--lg mt-3" onClick={() => setView('email')} disabled={busy}>
                 <Icon name="user" size={18} /> Continuar con correo
               </button>
-            </div>
-          ) : (
-            <div className="mt-6">
-              <button
-                type="button"
-                className="row gap6 faint mb-4 text-[13px]"
-                onClick={() => setView('choice')}
-              >
-                <Icon name="back" size={16} /> Volver
-              </button>
-
-              {authMode === 'login' ? (
-                <form className="stack gap12" onSubmit={loginForm.handleSubmit(onLogin)}>
-                  <Field label="Correo" type="email" placeholder="tu@correo.com" error={loginForm.formState.errors.email?.message} {...loginForm.register('email')} />
-                  <Field label="Contraseña" type="password" placeholder="••••••••" error={loginForm.formState.errors.password?.message} {...loginForm.register('password')} />
-                  <button className="btn btn--block btn--lg" type="submit" disabled={busy}>
-                    <Icon name="user" size={18} /> {busy ? 'Entrando…' : 'Entrar'}
-                  </button>
-                </form>
-              ) : (
-                <form className="stack gap12" onSubmit={registerForm.handleSubmit(onRegister)}>
-                  <Field label="Nombre" placeholder="Marcos Vidal" error={registerForm.formState.errors.displayName?.message} {...registerForm.register('displayName')} />
-                  <Field label="Usuario" placeholder="marcosvidal" error={registerForm.formState.errors.username?.message} {...registerForm.register('username')} />
-                  <Field label="Correo" type="email" placeholder="tu@correo.com" error={registerForm.formState.errors.email?.message} {...registerForm.register('email')} />
-                  <Field label="Contraseña" type="password" placeholder="mínimo 8 caracteres" error={registerForm.formState.errors.password?.message} {...registerForm.register('password')} />
-                  <button className="btn btn--block btn--lg" type="submit" disabled={busy}>
-                    <Icon name="user" size={18} /> {busy ? 'Creando…' : 'Crear cuenta'}
-                  </button>
-                </form>
-              )}
-
-              <p className="muted mt-4 text-center text-[13.5px]">
-                {authMode === 'login' ? '¿Aún no tienes cuenta? ' : '¿Ya tienes cuenta? '}
-                <button type="button" className="text-accent underline-offset-2 hover:underline" onClick={() => setAuthMode((m) => (m === 'login' ? 'register' : 'login'))}>
-                  {authMode === 'login' ? 'Crea una' : 'Entra'}
+            ) : (
+              <div className="mt-4">
+                <button type="button" className="row gap6 faint mb-4 text-[13px]" onClick={() => setView('choice')}>
+                  <Icon name="back" size={16} /> Volver
                 </button>
-              </p>
-            </div>
-          )}
+                {emailForm}
+              </div>
+            )}
+          </div>
 
           <p className="faint mt-5 text-center text-xs leading-relaxed">
             Al continuar aceptas los <u>Términos</u> y la <u>Política de privacidad</u> de YourVivac.
