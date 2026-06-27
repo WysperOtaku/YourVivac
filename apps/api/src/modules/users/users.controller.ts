@@ -5,6 +5,9 @@ export const usersController = {
   search: asyncHandler(async (req, res) => {
     res.json(await usersService.search(String(req.query.q ?? '')));
   }),
+  suggestions: asyncHandler(async (req, res) => {
+    res.json(await usersService.suggestions(req.user!.userId));
+  }),
   profile: asyncHandler(async (req, res) => {
     res.json(await usersService.profile(req.params.username, req.user?.userId));
   }),

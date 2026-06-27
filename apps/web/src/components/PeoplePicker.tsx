@@ -13,6 +13,20 @@ interface Props {
   autoFocus?: boolean;
 }
 
+/** Normaliza lo tecleado/pegado: «@handle» o URL de perfil (/u/<handle> o …/<handle>)
+ *  → handle suelto para usarlo como término de búsqueda. */
+function extractTerm(raw: string): string {
+  let v = raw.trim();
+  if (!v) return '';
+  // URL de perfil (absoluta o relativa): toma el último segmento de la ruta.
+  if (v.includes('/')) {
+    const path = v.split(/[?#]/)[0] ?? v; // descarta query/hash
+    const segs = path.split('/').filter(Boolean);
+    v = segs[segs.length - 1] ?? '';
+  }
+  return v.replace(/^@+/, ''); // «@handle» → «handle»
+}
+
 /** Buscador de personas para invitar: busca por nombre/@usuario y marca con + / ✓.
  *  Reutilizable en crear salida y en la modal de invitar miembros. */
 export function PeoplePicker({ selected, onChange, excludeIds = [], autoFocus }: Props) {
@@ -25,17 +39,29 @@ export function PeoplePicker({ selected, onChange, excludeIds = [], autoFocus }:
     return () => clearTimeout(t);
   }, [q]);
 
+  // Término real de búsqueda (resuelve @handle y URLs pegadas).
+  const term = extractTerm(debounced);
+  const isSearching = term.length >= 2;
+
   const searchQ = useQuery({
-    queryKey: ['user-search', debounced],
-    queryFn: () => api.users.search(debounced),
-    enabled: debounced.length >= 2,
+    queryKey: ['user-search', term],
+    queryFn: () => api.users.search(term),
+    enabled: isSearching,
+    retry: false,
+  });
+
+  // Sin búsqueda activa: personas sugeridas (a quién sigues / co-miembros).
+  const suggestQ = useQuery({
+    queryKey: ['user-suggestions'],
+    queryFn: () => api.users.suggestions(),
+    enabled: !isSearching,
     retry: false,
   });
 
   const excluded = new Set(excludeIds);
   const selectedIds = new Set(selected.map((u) => u.id));
-  // Con búsqueda: resultados (sin contarte a ti); sin búsqueda: lo ya seleccionado.
-  const rows = debounced.length >= 2 ? (searchQ.data ?? []).filter((u) => u.id !== meId) : selected;
+  // Con búsqueda: resultados; sin búsqueda: sugerencias. Nunca te incluyas a ti.
+  const rows = (isSearching ? searchQ.data ?? [] : suggestQ.data ?? []).filter((u) => u.id !== meId);
 
   const toggle = (u: UserSearchResult) => {
     if (excluded.has(u.id)) return;
@@ -51,7 +77,7 @@ export function PeoplePicker({ selected, onChange, excludeIds = [], autoFocus }:
           <input
             autoFocus={autoFocus}
             className="grow bg-transparent text-[14.5px] text-ink outline-none placeholder:text-ink-3"
-            placeholder="Busca amigos por nombre o @usuario…"
+            placeholder="Busca amigos o pega un enlace…"
             value={q}
             onChange={(e) => setQ(e.target.value)}
           />
@@ -62,14 +88,17 @@ export function PeoplePicker({ selected, onChange, excludeIds = [], autoFocus }:
       </div>
 
       <div className="stack max-h-[44vh] overflow-auto">
-        {debounced.length >= 2 && searchQ.isLoading && (
+        {isSearching && searchQ.isLoading && (
           <div className="faint py-6 text-center text-sm">Buscando…</div>
         )}
-        {debounced.length >= 2 && !searchQ.isLoading && rows.length === 0 && (
-          <div className="faint py-6 text-center text-sm">Nadie con «{debounced}».</div>
+        {isSearching && !searchQ.isLoading && rows.length === 0 && (
+          <div className="faint py-6 text-center text-sm">Nadie con «{term}».</div>
         )}
-        {debounced.length < 2 && selected.length === 0 && (
-          <div className="faint py-6 text-center text-sm">Busca a tu gente por nombre o @usuario.</div>
+        {!isSearching && suggestQ.isLoading && (
+          <div className="faint py-6 text-center text-sm">Cargando sugerencias…</div>
+        )}
+        {!isSearching && !suggestQ.isLoading && rows.length === 0 && (
+          <div className="faint py-6 text-center text-sm">Busca amigos o pega un enlace…</div>
         )}
 
         {rows.map((u) => {
