@@ -87,6 +87,12 @@ export const boardService = {
       case 'list':
         data.list = input.list;
         break;
+      case 'topo':
+        data.topo = input.topo;
+        break;
+      case 'route':
+        data.route = input.route;
+        break;
     }
 
     const pin = await PinModel.create(data);

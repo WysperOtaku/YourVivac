@@ -34,6 +34,25 @@ const envSchema = z.object({
   GOOGLE_MAPS_API_KEY: z.string().optional(),
   MODERATION_PROVIDER_KEY: z.string().optional(),
 
+  // Almacenamiento de teselas/blobs. En dev: disco local; en prod: Azure Blob.
+  STORAGE_DRIVER: z.enum(['local', 'azure']).default('local'),
+  STORAGE_LOCAL_DIR: z.string().default('.data/storage'),
+  AZURE_STORAGE_CONNECTION_STRING: z.string().optional(),
+  AZURE_BLOB_CONTAINER: z.string().default('yourvivac-tiles'),
+
+  // Mapa topográfico IGN (España). Servicios públicos y gratuitos.
+  IGN_WMTS_BASE: z.string().default('https://www.ign.es/wmts'),
+  IGN_VECTOR_BASE: z.string().default('https://vt-ign.idee.es'),
+  IGN_STYLE_BASE: z.string().default('https://www.ign.es/web/resources/mapa-base-ign/estilos'),
+  // Geocoder de topónimos del IGN (CartoCiudad / nominatim-style).
+  IGN_GEOCODER_URL: z.string().default('https://www.cartociudad.es/geocoder/api/geocoder'),
+
+  // Motor de rutas BRouter self-host (docker compose service `brouter`).
+  BROUTER_URL: z.string().default('http://localhost:17777'),
+
+  // TTL de caché de teselas en segundos (30 días por defecto).
+  TILE_CACHE_TTL: z.coerce.number().default(2_592_000),
+
   CORS_ORIGINS: z.string().default('http://localhost:5173,http://localhost:19006'),
 
   // Cookie de refresh. En local sobre http debe ser secure=false (si no, el navegador

@@ -72,6 +72,8 @@ export const PinType = {
   List: 'list',
   Map: 'map',
   Text: 'text',
+  Topo: 'topo',
+  Route: 'route',
 } as const;
 export type PinType = (typeof PinType)[keyof typeof PinType];
 

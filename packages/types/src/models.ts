@@ -225,7 +225,67 @@ export interface ListPin extends PinBase {
   list: { gearListId: Id };
 }
 
-export type Pin = NotePin | TextPin | PhotoPin | LinkPin | MapPin | ListPin;
+/** Capa base del mapa topográfico (IGN España; ampliable a otros países). */
+export type TopoLayer = 'base' | 'mtn' | 'relieve' | 'ortofoto';
+
+/** Tipo de marca/icono YourVivac que se suelta sobre el mapa topográfico. */
+export type TopoMarkKind =
+  | 'cumbre'
+  | 'refugio'
+  | 'fuente'
+  | 'vivac'
+  | 'parking'
+  | 'cruce'
+  | 'punto';
+
+export interface TopoMark {
+  coords: GeoCoords;
+  kind: TopoMarkKind;
+  label?: string;
+}
+
+/** Pin de mapa topográfico IGN renderizado con la estética YourVivac (MapLibre). */
+export interface TopoPin extends PinBase {
+  type: 'topo';
+  topo: {
+    label: string;
+    center: GeoCoords;
+    zoom: number;
+    layer: TopoLayer;
+    marks?: TopoMark[];
+  };
+}
+
+/** Perfil de cálculo de ruta (BRouter). */
+export type RouteProfile = 'hiking' | 'trekking' | 'mountain';
+
+/** Pin de ruta calculada (BRouter): waypoints del usuario + geometría + perfil de desnivel. */
+export interface RoutePin extends PinBase {
+  type: 'route';
+  route: {
+    name: string;
+    profile: RouteProfile;
+    /** Puntos marcados por el usuario (origen, paradas, destino). */
+    waypoints: GeoCoords[];
+    /** Polilínea calculada por el motor de rutas. */
+    geometry: GeoCoords[];
+    distanceM: number;
+    ascentM: number;
+    descentM: number;
+    durationMin?: number;
+    layer?: TopoLayer;
+  };
+}
+
+export type Pin =
+  | NotePin
+  | TextPin
+  | PhotoPin
+  | LinkPin
+  | MapPin
+  | ListPin
+  | TopoPin
+  | RoutePin;
 
 // ---------------------------------------------------------------------------
 // gearLists

@@ -57,6 +57,14 @@ services:
       CLOUDINARY_API_SECRET: ${CLOUDINARY_API_SECRET:-}
       STORE_SERVICE_URL: ${STORE_SERVICE_URL:-}
       STORE_SERVICE_API_KEY: ${STORE_SERVICE_API_KEY:-}
+      # Mapas/rutas: teselas IGN cacheadas en disco (volumen yv-tiles); rutas vía BRouter.
+      STORAGE_DRIVER: ${STORAGE_DRIVER:-local}
+      STORAGE_LOCAL_DIR: /data/tiles
+      AZURE_STORAGE_CONNECTION_STRING: ${AZURE_STORAGE_CONNECTION_STRING:-}
+      AZURE_BLOB_CONTAINER: ${AZURE_BLOB_CONTAINER:-yourvivac-tiles}
+      BROUTER_URL: http://brouter:17777
+    volumes:
+      - yv-tiles:/data/tiles
     depends_on:
       mongo:
         condition: service_healthy
@@ -90,6 +98,20 @@ services:
       redis:
         condition: service_healthy
 
+  brouter:
+    # Motor de rutas BRouter self-host (senderismo). Bajo el perfil `routing` para
+    # que `docker compose up` por defecto NO lo arranque hasta que el worker
+    # «routing» aporte infra/brouter (Dockerfile + perfil yv-hiking.brf + segmentos).
+    # Arráncalo con:  docker compose --profile routing up brouter
+    build:
+      context: ./infra/brouter
+    restart: unless-stopped
+    profiles: ['routing']
+    ports:
+      - '17777:17777'
+    volumes:
+      - yv-brouter-segments:/segments
+
   web:
     build:
       context: .
@@ -116,3 +138,5 @@ services:
 
 volumes:
   yv-mongo:
+  yv-tiles:
+  yv-brouter-segments:

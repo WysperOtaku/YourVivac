@@ -11,6 +11,8 @@ import { notificationsRouter } from '../modules/notifications/notifications.rout
 import { mediaRouter } from '../modules/media/media.routes.js';
 import { adminRouter } from '../modules/admin/admin.routes.js';
 import { feedRouter } from '../modules/feed/feed.routes.js';
+import { mapsRouter } from '../modules/maps/maps.routes.js';
+import { routingRouter } from '../modules/routing/routing.routes.js';
 
 /**
  * Registro central de rutas (/api/v1). Cada módulo ya está cableado aquí; los
@@ -36,3 +38,5 @@ apiRouter.use('/notifications', notificationsRouter);
 apiRouter.use('/media', mediaRouter);
 apiRouter.use('/admin', adminRouter);
 apiRouter.use('/feed', feedRouter);
+apiRouter.use('/maps', mapsRouter);
+apiRouter.use('/routing', routingRouter);

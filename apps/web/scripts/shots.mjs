@@ -71,6 +71,8 @@ const paginated = (arr) => ({ items: arr, total: arr.length, page: 1, pageSize: 
 function resolve(p) {
   if (p === '/auth/me') return user;
   if (p === '/users/search') return members.filter((m) => m.id !== user.id);
+  if (p === '/users/suggestions') return members.filter((m) => m.id !== user.id);
+  if (p === '/maps/search') return [];
   if (p === '/feed') return paginated(feed);
   if (p === '/trips') return trips;
   if (/^\/trips\/[^/]+\/board$/.test(p)) return pins;

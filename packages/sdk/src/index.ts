@@ -14,6 +14,7 @@ import type {
   ForgotPasswordRequest,
   GearItemInput,
   GearList,
+  GeocodeResult,
   GoogleAuthRequest,
   GuideApplication,
   GuideApplyRequest,
@@ -29,6 +30,8 @@ import type {
   RegisterRequest,
   Report,
   ResetPasswordRequest,
+  RouteRequest,
+  RouteResult,
   RsvpRequest,
   SendMessageRequest,
   Tip,
@@ -40,6 +43,7 @@ import type {
   User,
   UserProfileResponse,
   UserSearchResult,
+  UserSuggestion,
   VerifyEmailRequest,
 } from '@yourvivac/types';
 
@@ -90,6 +94,7 @@ export function createApiClient(options: ApiClientOptions) {
       profile: (username: string) =>
         data<UserProfileResponse>(http.get(`/users/${username}`)),
       search: (q: string) => data<UserSearchResult[]>(http.get('/users/search', { params: { q } })),
+      suggestions: () => data<UserSuggestion[]>(http.get('/users/suggestions')),
       updateMe: (b: UpdateUserRequest) => data<User>(http.patch('/users/me', b)),
       updateSettings: (b: UpdateSettingsRequest) =>
         data<User>(http.patch('/users/me/settings', b)),
@@ -141,6 +146,23 @@ export function createApiClient(options: ApiClientOptions) {
       deletePin: (pinId: string) => data<void>(http.delete(`/pins/${pinId}`)),
       react: (pinId: string, emoji: string) =>
         data<Pin>(http.post(`/pins/${pinId}/reactions`, { emoji })),
+    },
+
+    /** Mapa topográfico IGN servido/cacheado por nuestra API (consumido por MapLibre). */
+    maps: {
+      /** URL base de la API (p. ej. `/api/v1`) para construir endpoints de teselas. */
+      base: () => http.defaults.baseURL ?? '',
+      /** Plantilla de teselas para una capa (`{z}/{x}/{y}` la rellena MapLibre). */
+      tileUrl: (layer: string) => `${http.defaults.baseURL ?? ''}/maps/tiles/${layer}/{z}/{x}/{y}`,
+      /** URL del style JSON YourVivac (estética propia sobre datos IGN). */
+      styleUrl: (name = 'yv-topo') => `${http.defaults.baseURL ?? ''}/maps/style/${name}`,
+      /** Geocoder de topónimos en España. */
+      search: (q: string) => data<GeocodeResult[]>(http.get('/maps/search', { params: { q } })),
+    },
+
+    /** Motor de rutas de senderismo (BRouter self-host) vía proxy de la API. */
+    routing: {
+      route: (b: RouteRequest) => data<RouteResult>(http.post('/routing', b)),
     },
 
     gear: {

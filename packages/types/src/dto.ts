@@ -13,7 +13,15 @@ import type {
   TripVisibility,
   Units,
 } from './enums.js';
-import type { PublicUser, Tip, Trip, User } from './models.js';
+import type {
+  PublicUser,
+  RouteProfile,
+  Tip,
+  TopoLayer,
+  TopoMark,
+  Trip,
+  User,
+} from './models.js';
 
 // --- Auth ---
 export interface GoogleAuthRequest {
@@ -76,6 +84,8 @@ export interface UserProfileResponse {
   user: PublicUser & Pick<User, 'bio' | 'location' | 'stats' | 'achievements' | 'counts'>;
   isFollowing?: boolean;
 }
+/** Persona sugerida por defecto en el buscador (a quién sigues / co-miembros). */
+export type UserSuggestion = UserSearchResult;
 
 // --- Guide ---
 export interface GuideApplyRequest {
@@ -129,6 +139,18 @@ export interface CreatePinRequest {
   link?: { url: string };
   map?: { label: string; coords: GeoCoords; placeId?: string; address?: string; path?: GeoCoords[] };
   list?: { gearListId: Id };
+  topo?: { label: string; center: GeoCoords; zoom: number; layer: TopoLayer; marks?: TopoMark[] };
+  route?: {
+    name: string;
+    profile: RouteProfile;
+    waypoints: GeoCoords[];
+    geometry: GeoCoords[];
+    distanceM: number;
+    ascentM: number;
+    descentM: number;
+    durationMin?: number;
+    layer?: TopoLayer;
+  };
 }
 export interface UpdatePinRequest {
   layout?: PinLayoutInput;
@@ -240,6 +262,31 @@ export interface MetricsTimeseriesQuery {
   from: string;
   to: string;
   metric: 'newUsers' | 'activeUsers' | 'tripsCreated' | 'tipsPublished';
+}
+
+// --- Maps (mapa topográfico IGN) ---
+/** Resultado del geocoder (búsqueda de topónimos en España vía nuestra API). */
+export interface GeocodeResult {
+  name: string;
+  coords: GeoCoords;
+  /** Municipio / provincia u otra desambiguación. */
+  context?: string;
+}
+
+// --- Routing (motor de rutas BRouter) ---
+export interface RouteRequest {
+  profile: RouteProfile;
+  /** Puntos por los que pasa la ruta (mínimo origen y destino). */
+  waypoints: GeoCoords[];
+}
+export interface RouteResult {
+  profile: RouteProfile;
+  waypoints: GeoCoords[];
+  geometry: GeoCoords[];
+  distanceM: number;
+  ascentM: number;
+  descentM: number;
+  durationMin?: number;
 }
 
 // --- Feed (home) ---

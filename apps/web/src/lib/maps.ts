@@ -11,3 +11,10 @@ export interface LatLng {
 
 /** Centro por defecto (Pirineos) cuando aún no hay coordenadas. */
 export const DEFAULT_CENTER: LatLng = { lat: 42.63, lng: 0.65 };
+
+/**
+ * El mapa topográfico IGN (pin `topo`/`route`) NO requiere clave: se sirve y
+ * cachea por nuestra API y se pinta con MapLibre + estilo YourVivac. Siempre
+ * disponible (a diferencia del pin `map` de Google, que depende de la clave).
+ */
+export const isTopoConfigured = true;

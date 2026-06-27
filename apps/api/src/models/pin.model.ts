@@ -10,7 +10,11 @@ const pinSchema = new Schema(
   {
     tripId: { type: Schema.Types.ObjectId, ref: 'Trip', required: true, index: true },
     authorId: { type: Schema.Types.ObjectId, ref: 'User', required: true },
-    type: { type: String, enum: ['note', 'photo', 'link', 'list', 'map', 'text'], required: true },
+    type: {
+      type: String,
+      enum: ['note', 'photo', 'link', 'list', 'map', 'text', 'topo', 'route'],
+      required: true,
+    },
     layout: {
       x: { type: Number, default: 0 },
       y: { type: Number, default: 0 },
@@ -37,6 +41,35 @@ const pinSchema = new Schema(
       { _id: false },
     ),
     list: new Schema({ gearListId: { type: Schema.Types.ObjectId, ref: 'GearList' } }, { _id: false }),
+    topo: new Schema(
+      {
+        label: String,
+        center: { lat: Number, lng: Number },
+        zoom: Number,
+        layer: String,
+        marks: [
+          new Schema(
+            { coords: { lat: Number, lng: Number }, kind: String, label: String },
+            { _id: false },
+          ),
+        ],
+      },
+      { _id: false },
+    ),
+    route: new Schema(
+      {
+        name: String,
+        profile: String,
+        waypoints: [{ _id: false, lat: Number, lng: Number }],
+        geometry: [{ _id: false, lat: Number, lng: Number }],
+        distanceM: Number,
+        ascentM: Number,
+        descentM: Number,
+        durationMin: Number,
+        layer: String,
+      },
+      { _id: false },
+    ),
     reactions: [
       new Schema(
         { userId: { type: Schema.Types.ObjectId, ref: 'User' }, emoji: String },

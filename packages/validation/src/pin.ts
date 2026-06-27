@@ -1,6 +1,18 @@
 import { z } from 'zod';
 import { coords, mediaRef, objectId } from './common.js';
 
+export const topoLayer = z.enum(['base', 'mtn', 'relieve', 'ortofoto']);
+export const topoMarkKind = z.enum([
+  'cumbre',
+  'refugio',
+  'fuente',
+  'vivac',
+  'parking',
+  'cruce',
+  'punto',
+]);
+export const routeProfile = z.enum(['hiking', 'trekking', 'mountain']);
+
 export const pinLayout = z.object({
   x: z.number(),
   y: z.number(),
@@ -37,6 +49,41 @@ export const createPinSchema = z.discriminatedUnion('type', [
     }),
   }),
   z.object({ ...base, type: z.literal('list'), list: z.object({ gearListId: objectId }) }),
+  z.object({
+    ...base,
+    type: z.literal('topo'),
+    topo: z.object({
+      label: z.string().min(1).max(120),
+      center: coords,
+      zoom: z.number().min(1).max(20),
+      layer: topoLayer,
+      marks: z
+        .array(
+          z.object({
+            coords,
+            kind: topoMarkKind,
+            label: z.string().max(80).optional(),
+          }),
+        )
+        .max(100)
+        .optional(),
+    }),
+  }),
+  z.object({
+    ...base,
+    type: z.literal('route'),
+    route: z.object({
+      name: z.string().min(1).max(120),
+      profile: routeProfile,
+      waypoints: z.array(coords).min(2).max(50),
+      geometry: z.array(coords).min(2).max(20000),
+      distanceM: z.number().nonnegative(),
+      ascentM: z.number().nonnegative(),
+      descentM: z.number().nonnegative(),
+      durationMin: z.number().nonnegative().optional(),
+      layer: topoLayer.optional(),
+    }),
+  }),
 ]);
 
 export const updatePinSchema = z
@@ -53,4 +100,16 @@ export const reactionSchema = z.object({
   emoji: z.string().min(1).max(8),
 });
 
+/** Cuerpo de `POST /routing`: perfil + waypoints (mín. origen y destino). */
+export const routeRequestSchema = z.object({
+  profile: routeProfile.default('hiking'),
+  waypoints: z.array(coords).min(2).max(50),
+});
+
+/** Query del geocoder `GET /maps/search?q=`. */
+export const geocodeQuerySchema = z.object({
+  q: z.string().min(2).max(120),
+});
+
 export type CreatePinInput = z.infer<typeof createPinSchema>;
+export type RouteRequestInput = z.infer<typeof routeRequestSchema>;
