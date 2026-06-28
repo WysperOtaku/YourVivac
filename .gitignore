@@ -37,3 +37,6 @@ apps/web/dist/
 
 # Screenshots de fidelidad (generados por scripts/shots.mjs)
 apps/web/shots/
+
+# Caché local de teselas de mapa (StorageAdapter dev)
+apps/api/.data/
