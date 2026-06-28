@@ -33,12 +33,12 @@ const TYPES: { key: PinType; label: string; icon: 'note' | 'image' | 'link' | 'l
 ];
 const COLORS = ['#a8d77c', '#d68a57', '#79b8c4', '#e7ddc6'];
 
-/** Capas base del mapa topográfico IGN. */
+/** Capas base del mapa topográfico. «Topo YV» = nuestro relieve + curvas de nivel. */
 const LAYERS: { key: TopoLayer; label: string }[] = [
-  { key: 'mtn', label: 'Mapa' },
+  { key: 'base', label: 'Topo YV' },
+  { key: 'mtn', label: 'IGN' },
   { key: 'relieve', label: 'Relieve' },
   { key: 'ortofoto', label: 'Satélite' },
-  { key: 'base', label: 'Base' },
 ];
 /** Iconografía YourVivac que se suelta sobre el mapa topo. */
 const MARK_KINDS: { key: TopoMarkKind; label: string }[] = [
@@ -99,7 +99,7 @@ export function AddPinModal({
   // Pin topo (mapa topográfico IGN con marcas YourVivac)
   const [topoLabel, setTopoLabel] = useState('');
   const [topoCenter, setTopoCenter] = useState<LatLng>(DEFAULT_CENTER);
-  const [topoLayer, setTopoLayer] = useState<TopoLayer>('mtn');
+  const [topoLayer, setTopoLayer] = useState<TopoLayer>('base');
   const [topoMarks, setTopoMarks] = useState<TopoMark[]>([]);
   const [topoMarkKind, setTopoMarkKind] = useState<TopoMarkKind>('cumbre');
   const [topoMarkLabel, setTopoMarkLabel] = useState('');
@@ -109,7 +109,7 @@ export function AddPinModal({
   // Pin route (ruta calculada por BRouter)
   const [routeName, setRouteName] = useState('');
   const [routeProfile, setRouteProfile] = useState<RouteProfile>('hiking');
-  const [routeLayer, setRouteLayer] = useState<TopoLayer>('mtn');
+  const [routeLayer, setRouteLayer] = useState<TopoLayer>('base');
   const [routeWaypoints, setRouteWaypoints] = useState<LatLng[]>([]);
   const [routeResult, setRouteResult] = useState<RouteResult | null>(null);
 
@@ -143,14 +143,14 @@ export function AddPinModal({
     setGearListId('');
     setTopoLabel('');
     setTopoCenter(DEFAULT_CENTER);
-    setTopoLayer('mtn');
+    setTopoLayer('base');
     setTopoMarks([]);
     setTopoMarkKind('cumbre');
     setTopoMarkLabel('');
     setTopoQ('');
     setRouteName('');
     setRouteProfile('hiking');
-    setRouteLayer('mtn');
+    setRouteLayer('base');
     setRouteWaypoints([]);
     setRouteResult(null);
   }

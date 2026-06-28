@@ -13,18 +13,25 @@ import { storage, type StoredBlob } from '../../lib/storage/index.js';
  * estándar). Servicios públicos y gratuitos (atribución «© IGN España»).
  */
 
-/** Capas soportadas por el proxy de teselas. */
-export type TileLayer = 'mtn' | 'relieve' | 'ortofoto' | 'base';
+/** Capas soportadas por el proxy de teselas.
+ *  Raster IGN (mtn/relieve/ortofoto/base) + DEM de elevación (dem, Terrarium) +
+ *  base vectorial del IGN (btn, MVT). El `dem` alimenta el sombreado y las curvas
+ *  de nivel que genera el cliente; `btn` es la base vectorial reestilable. */
+export type TileLayer = 'mtn' | 'relieve' | 'ortofoto' | 'base' | 'dem' | 'btn';
 
 interface LayerConfig {
-  /** Base WMTS (host + ruta de servicio). */
+  /** wmts = KVP GetTile del IGN; xyz = plantilla directa {z}/{x}/{y}. */
+  kind?: 'wmts' | 'xyz';
+  /** Base del servicio (host + ruta). */
   base: string;
-  /** Identificador de capa WMTS. */
-  layer: string;
-  /** Formato de teselas que pedimos al IGN. */
+  /** Identificador de capa WMTS (solo kind=wmts). */
+  layer?: string;
+  /** Content-Type esperado / Accept. */
   format: string;
   /** Extensión de fichero para la clave de caché. */
   ext: string;
+  /** Plantilla relativa para kind=xyz (admite {z}/{x}/{y} en cualquier orden). */
+  template?: string;
 }
 
 /**
@@ -57,6 +64,23 @@ const LAYERS: Record<TileLayer, LayerConfig> = {
     format: 'image/jpeg',
     ext: 'jpg',
   },
+  // DEM de elevación (Terrarium de AWS, gratis y global). Lo consume maplibre-contour
+  // en el cliente para el sombreado de relieve y las curvas de nivel.
+  dem: {
+    kind: 'xyz',
+    base: 'https://s3.amazonaws.com/elevation-tiles-prod/terrarium',
+    template: '/{z}/{x}/{y}.png',
+    format: 'image/png',
+    ext: 'png',
+  },
+  // Base vectorial del IGN (Base Topográfica Nacional, MVT). OJO: orden {z}/{y}/{x}.
+  btn: {
+    kind: 'xyz',
+    base: 'https://vt-btn.idee.es/1.0.0/btn/tile',
+    template: '/{z}/{y}/{x}.pbf',
+    format: 'application/x-protobuf',
+    ext: 'pbf',
+  },
 };
 
 export const TILE_LAYERS = Object.keys(LAYERS) as TileLayer[];
@@ -66,13 +90,20 @@ export function isTileLayer(value: string): value is TileLayer {
   return Object.prototype.hasOwnProperty.call(LAYERS, value);
 }
 
-/** Construye la URL WMTS GetTile del IGN para una tesela z/x/y. */
+/** Construye la URL upstream de una tesela z/x/y (WMTS KVP del IGN o XYZ directa). */
 function buildTileUrl(cfg: LayerConfig, z: number, x: number, y: number): string {
+  if (cfg.kind === 'xyz' && cfg.template) {
+    const path = cfg.template
+      .replace('{z}', String(z))
+      .replace('{x}', String(x))
+      .replace('{y}', String(y));
+    return `${cfg.base}${path}`;
+  }
   const params = new URLSearchParams({
     service: 'WMTS',
     request: 'GetTile',
     version: '1.0.0',
-    layer: cfg.layer,
+    layer: cfg.layer ?? '',
     style: 'default',
     format: cfg.format,
     tilematrixset: 'GoogleMapsCompatible',

@@ -6,6 +6,7 @@ import maplibregl, {
   type LineLayerSpecification,
 } from 'maplibre-gl';
 import 'maplibre-gl/dist/maplibre-gl.css';
+import mlcontour from 'maplibre-contour';
 import {
   Mountain,
   Tent,
@@ -60,20 +61,134 @@ function readToken(el: HTMLElement, name: string, fallback: string): string {
   return v || fallback;
 }
 
-/** Construye el style YourVivac inyectando las teselas de la capa y el color de fondo. */
-function buildStyle(layer: string, host: HTMLElement): StyleSpecification {
+/**
+ * DEM de elevación (Terrarium) compartido entre el sombreado y las curvas de
+ * nivel. Singleton: el protocolo de maplibre-contour se registra una sola vez.
+ */
+let demSource: InstanceType<typeof mlcontour.DemSource> | null = null;
+function getDemSource(): InstanceType<typeof mlcontour.DemSource> {
+  if (demSource) return demSource;
+  const tpl = api.maps.tileUrl('dem'); // `${base}/maps/tiles/dem/{z}/{x}/{y}`
+  const url = tpl.startsWith('http') ? tpl : `${window.location.origin}${tpl}`;
+  demSource = new mlcontour.DemSource({ url, encoding: 'terrarium', maxzoom: 13, worker: true });
+  demSource.setupMaplibre(maplibregl);
+  return demSource;
+}
+
+/** Style raster (capas IGN mtn/relieve/ortofoto): tesela IGN reestilada sutilmente. */
+function buildRasterStyle(layer: string, host: HTMLElement): StyleSpecification {
   // structuredClone evita mutar el JSON importado (compartido entre instancias).
   const style = structuredClone(rawStyle) as unknown as StyleSpecification;
   const source = style.sources['yv-topo'] as RasterSourceSpecification;
-  // Las teselas las sirve/cachea nuestra API; MapLibre rellena {z}/{x}/{y}.
   source.tiles = [api.maps.tileUrl(layer)];
-
   const bg = readToken(host, '--bg-3', '#1c271f');
   const bgLayer = style.layers.find((l) => l.id === 'yv-background');
   if (bgLayer && bgLayer.type === 'background') {
     bgLayer.paint = { ...bgLayer.paint, 'background-color': bg };
   }
   return style;
+}
+
+/**
+ * Style «Topo YV»: NUESTRO mapa topográfico. Sombreado de relieve + curvas de
+ * nivel generadas en el cliente desde el DEM (maplibre-contour), dibujadas con
+ * la estética YourVivac. Vectorial → nítido y legible a cualquier zoom (arregla
+ * el UX del zoom del raster). El intervalo de curvas se adapta por nivel de zoom.
+ */
+function buildTopoStyle(): StyleSpecification {
+  const dem = getDemSource();
+  const MINOR = '#9a7a4e';
+  const MAJOR = '#7a5a32';
+  const PAPER = '#ece5d5';
+  return {
+    version: 8,
+    name: 'YourVivac Topo',
+    glyphs: 'https://demotiles.maplibre.org/font/{fontstack}/{range}.pbf',
+    sources: {
+      'yv-dem': {
+        type: 'raster-dem',
+        tiles: [dem.sharedDemProtocolUrl],
+        encoding: 'terrarium',
+        tileSize: 256,
+        maxzoom: 13,
+      },
+      'yv-contours': {
+        type: 'vector',
+        tiles: [
+          dem.contourProtocolUrl({
+            multiplier: 1,
+            thresholds: {
+              10: [200, 1000],
+              11: [100, 500],
+              12: [100, 500],
+              13: [50, 250],
+              14: [20, 100],
+              15: [10, 50],
+            },
+            elevationKey: 'ele',
+            levelKey: 'level',
+            contourLayer: 'contours',
+            overzoom: 1,
+          }),
+        ],
+        maxzoom: 15,
+      },
+    },
+    layers: [
+      { id: 'yv-background', type: 'background', paint: { 'background-color': PAPER } },
+      {
+        id: 'yv-hillshade',
+        type: 'hillshade',
+        source: 'yv-dem',
+        paint: {
+          'hillshade-exaggeration': 0.4,
+          'hillshade-shadow-color': '#5c4a2e',
+          'hillshade-accent-color': '#6f8a5e',
+          'hillshade-highlight-color': '#fbf6ea',
+        },
+      },
+      {
+        id: 'yv-contour-minor',
+        type: 'line',
+        source: 'yv-contours',
+        'source-layer': 'contours',
+        filter: ['!=', ['get', 'level'], 1],
+        paint: { 'line-color': MINOR, 'line-width': 0.7, 'line-opacity': 0.5 },
+      },
+      {
+        id: 'yv-contour-major',
+        type: 'line',
+        source: 'yv-contours',
+        'source-layer': 'contours',
+        filter: ['==', ['get', 'level'], 1],
+        paint: { 'line-color': MAJOR, 'line-width': 1.3, 'line-opacity': 0.65 },
+      },
+      {
+        id: 'yv-contour-label',
+        type: 'symbol',
+        source: 'yv-contours',
+        'source-layer': 'contours',
+        filter: ['==', ['get', 'level'], 1],
+        layout: {
+          'symbol-placement': 'line',
+          'text-field': ['concat', ['number-format', ['get', 'ele'], {}], ' m'],
+          'text-size': 10,
+          'text-font': ['Open Sans Regular'],
+          'symbol-spacing': 220,
+        },
+        paint: {
+          'text-color': MAJOR,
+          'text-halo-color': PAPER,
+          'text-halo-width': 1.4,
+        },
+      },
+    ],
+  } as StyleSpecification;
+}
+
+/** Devuelve el style según la capa: «base» = Topo YV (relieve+curvas); resto = raster IGN. */
+function buildStyle(layer: string, host: HTMLElement): StyleSpecification {
+  return layer === 'base' ? buildTopoStyle() : buildRasterStyle(layer, host);
 }
 
 /** Crea el elemento HTML de un pin de marca con iconografía YourVivac. */
