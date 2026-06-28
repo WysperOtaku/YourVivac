@@ -56,7 +56,7 @@ export function btnOverlayLayers(theme: ThemeName): unknown[] {
     { id: 'yv-rio-s', type: 'fill', source: BTN, 'source-layer': 'btn0302s_rio', paint: { 'fill-color': p.waterFill, 'fill-opacity': 0.8 } },
     { id: 'yv-embalse', type: 'fill', source: BTN, 'source-layer': 'btn0325s_embalse', paint: { 'fill-color': p.waterFill, 'fill-opacity': 0.8 } },
     { id: 'yv-laguna', type: 'fill', source: BTN, 'source-layer': 'btn0316s_laguna', paint: { 'fill-color': p.waterFill, 'fill-opacity': 0.8 } },
-    { id: 'yv-arbol', type: 'circle', source: BTN, 'source-layer': 'btn0404p_arbol', minzoom: 14, paint: { 'circle-radius': ['interpolate', ['linear'], ['zoom'], 14, 1, 17, 2.6], 'circle-color': p.tree, 'circle-opacity': 0.5 } },
+    { id: 'yv-arbol', type: 'circle', source: BTN, 'source-layer': 'btn0404p_arbol', minzoom: 13, paint: { 'circle-radius': ['interpolate', ['linear'], ['zoom'], 13, 1.2, 17, 3.2], 'circle-color': p.tree, 'circle-opacity': 0.6, 'circle-stroke-width': 0.4, 'circle-stroke-color': p.halo } },
     { id: 'yv-edificio', type: 'fill', source: BTN, 'source-layer': 'btn0507s_edific', minzoom: 13, paint: { 'fill-color': p.building, 'fill-opacity': 0.85 } },
     // --- agua lineal ---
     { id: 'yv-rio', type: 'line', source: BTN, 'source-layer': 'btn0302l_rio', minzoom: 9, paint: { 'line-color': p.water, 'line-width': ['interpolate', ['linear'], ['zoom'], 9, 0.5, 15, 2], 'line-opacity': 0.85 } },
@@ -128,6 +128,50 @@ export function btnOverlayLayers(theme: ThemeName): unknown[] {
       layout: { 'icon-image': 'yv-refuge', 'icon-size': 0.9, 'icon-allow-overlap': true, 'text-field': ['get', 'nombre'], 'text-font': FONT, 'text-size': 10.5, 'text-anchor': 'top', 'text-offset': [0, 0.95], 'text-optional': true },
       paint: { 'text-color': p.peak, 'text-halo-color': p.halo, 'text-halo-width': 1.5 },
     },
+    // sendas/GR-PR: etiqueta corta sobre la línea (GR 11, PR-HU 028…)
+    {
+      id: 'yv-itin-label', type: 'symbol', source: BTN, 'source-layer': 'btn0632l_itiner', minzoom: 12,
+      ...label(['coalesce', ['get', 'etiqueta'], ['get', 'nombre']], 10, theme === 'dark' ? '#8fd07a' : '#2f6b3e', p.halo, { 'symbol-placement': 'line', 'symbol-spacing': 260 }),
+    },
+    // río superficie (Río Ésera…): nombre
+    {
+      id: 'yv-rio-s-label', type: 'symbol', source: BTN, 'source-layer': 'btn0302s_rio', minzoom: 12,
+      ...label(['get', 'nombre'], 11, p.river, p.halo, { 'symbol-placement': 'line', 'symbol-spacing': 320 }),
+    },
+    // calles (urbana): nombre, a zoom alto
+    {
+      id: 'yv-calle-label', type: 'symbol', source: BTN, 'source-layer': 'btn0622l_urbana', minzoom: 16,
+      ...label(['get', 'nombre'], 9.5, p.inkSoft, p.halo, { 'symbol-placement': 'line', 'symbol-spacing': 200 }),
+    },
+    // iglesias / edificios religiosos (icono + nombre)
+    {
+      id: 'yv-iglesia', type: 'symbol', source: BTN, 'source-layer': 'btn0516s_edi_rel', minzoom: 14,
+      layout: { 'icon-image': 'yv-church', 'icon-size': 0.8, 'text-field': ['get', 'nombre'], 'text-font': FONT, 'text-size': 9.5, 'text-anchor': 'top', 'text-offset': [0, 0.85], 'text-optional': true },
+      paint: { 'text-color': p.inkSoft, 'text-halo-color': p.halo, 'text-halo-width': 1.4 },
+    },
+    // construcciones históricas (castillos, torres…) + referencias visuales
+    {
+      id: 'yv-historico', type: 'symbol', source: BTN, 'source-layer': 'btn0555s_con_his_s', minzoom: 13,
+      layout: { 'icon-image': 'yv-castle', 'icon-size': 0.85, 'text-field': ['get', 'nombre'], 'text-font': FONT, 'text-size': 10, 'text-anchor': 'top', 'text-offset': [0, 0.9], 'text-optional': true },
+      paint: { 'text-color': p.peak, 'text-halo-color': p.halo, 'text-halo-width': 1.4 },
+    },
+    {
+      id: 'yv-landmark', type: 'symbol', source: BTN, 'source-layer': 'btn0534s_ref_vis', minzoom: 13,
+      layout: { 'icon-image': 'yv-castle', 'icon-size': 0.8, 'text-field': ['get', 'nombre'], 'text-font': FONT, 'text-size': 9.5, 'text-anchor': 'top', 'text-offset': [0, 0.9], 'text-optional': true },
+      paint: { 'text-color': p.inkSoft, 'text-halo-color': p.halo, 'text-halo-width': 1.4 },
+    },
+    // cuevas
+    {
+      id: 'yv-cueva', type: 'symbol', source: BTN, 'source-layer': 'btn0537p_cueva', minzoom: 13,
+      layout: { 'icon-image': 'yv-cave', 'icon-size': 0.8, 'text-field': ['get', 'nombre'], 'text-font': FONT, 'text-size': 9.5, 'text-anchor': 'top', 'text-offset': [0, 0.85], 'text-optional': true },
+      paint: { 'text-color': p.inkSoft, 'text-halo-color': p.halo, 'text-halo-width': 1.4 },
+    },
+    // cascadas
+    {
+      id: 'yv-cascada', type: 'symbol', source: BTN, 'source-layer': 'btn0337p_cascada', minzoom: 13,
+      layout: { 'icon-image': 'yv-water', 'icon-size': 0.8, 'text-field': ['get', 'nombre'], 'text-font': FONT, 'text-size': 9.5, 'text-anchor': 'top', 'text-offset': [0, 0.85], 'text-optional': true },
+      paint: { 'text-color': p.river, 'text-halo-color': p.halo, 'text-halo-width': 1.4 },
+    },
   ];
 }
 
@@ -150,9 +194,11 @@ export function adminLabelLayers(theme: ThemeName): unknown[] {
   ];
 }
 
-/** Genera en runtime los iconos YourVivac (cumbre, refugio) que piden las symbol layers. */
+/** Genera en runtime los iconos YourVivac (cumbre, refugio, iglesia, castillo,
+ *  cueva, cascada) que piden las symbol layers del calco. */
 export function registerTopoIcons(map: MlMap, theme: ThemeName): void {
-  const fill = theme === 'dark' ? '#c47a3f' : '#8a5230';
+  const brown = theme === 'dark' ? '#c47a3f' : '#8a5230';
+  const blue = theme === 'dark' ? '#6aa6b8' : '#4a7c8c';
   const make = (id: string): ImageData | null => {
     const s = 30;
     const c = document.createElement('canvas');
@@ -162,31 +208,60 @@ export function registerTopoIcons(map: MlMap, theme: ThemeName): void {
     if (!ctx) return null;
     ctx.lineJoin = 'round';
     ctx.strokeStyle = '#ffffff';
-    ctx.fillStyle = fill;
-    if (id === 'yv-peak') {
-      ctx.lineWidth = 2;
+    ctx.fillStyle = brown;
+    const poly = (pts: [number, number][], w = 1.5) => {
+      ctx.lineWidth = w;
       ctx.beginPath();
-      ctx.moveTo(15, 4);
-      ctx.lineTo(27, 26);
-      ctx.lineTo(3, 26);
+      pts.forEach(([x, y], i) => (i ? ctx.lineTo(x, y) : ctx.moveTo(x, y)));
       ctx.closePath();
       ctx.fill();
       ctx.stroke();
-    } else if (id === 'yv-refuge') {
-      ctx.lineWidth = 1.6;
-      ctx.beginPath();
-      ctx.moveTo(15, 4);
-      ctx.lineTo(27, 14);
-      ctx.lineTo(23, 14);
-      ctx.lineTo(23, 26);
-      ctx.lineTo(7, 26);
-      ctx.lineTo(7, 14);
-      ctx.lineTo(3, 14);
-      ctx.closePath();
-      ctx.fill();
-      ctx.stroke();
-    } else {
-      return null;
+    };
+    switch (id) {
+      case 'yv-peak':
+        poly([[15, 4], [27, 26], [3, 26]], 2);
+        break;
+      case 'yv-refuge':
+        poly([[15, 4], [27, 14], [23, 14], [23, 26], [7, 26], [7, 14], [3, 14]], 1.6);
+        break;
+      case 'yv-castle':
+        poly([[6, 9], [6, 6], [10, 6], [10, 9], [13, 9], [13, 6], [17, 6], [17, 9], [20, 9], [20, 6], [24, 6], [24, 9], [24, 26], [6, 26]], 1.5);
+        break;
+      case 'yv-church':
+        // cruz + nave con tejado
+        ctx.lineWidth = 1.4;
+        ctx.beginPath();
+        ctx.moveTo(15, 2);
+        ctx.lineTo(15, 9);
+        ctx.moveTo(12, 4.5);
+        ctx.lineTo(18, 4.5);
+        ctx.stroke();
+        poly([[15, 8], [23, 14], [23, 26], [7, 26], [7, 14]], 1.4);
+        break;
+      case 'yv-cave':
+        ctx.lineWidth = 1.5;
+        ctx.beginPath();
+        ctx.moveTo(5, 26);
+        ctx.lineTo(5, 16);
+        ctx.arc(15, 16, 10, Math.PI, 0, false);
+        ctx.lineTo(25, 26);
+        ctx.closePath();
+        ctx.fill();
+        ctx.stroke();
+        break;
+      case 'yv-water':
+        ctx.fillStyle = blue;
+        ctx.lineWidth = 1.4;
+        ctx.beginPath();
+        ctx.moveTo(15, 4);
+        ctx.bezierCurveTo(24, 16, 22, 26, 15, 26);
+        ctx.bezierCurveTo(8, 26, 6, 16, 15, 4);
+        ctx.closePath();
+        ctx.fill();
+        ctx.stroke();
+        break;
+      default:
+        return null;
     }
     return ctx.getImageData(0, 0, s, s);
   };
