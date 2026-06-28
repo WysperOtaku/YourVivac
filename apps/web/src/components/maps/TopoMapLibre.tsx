@@ -98,7 +98,7 @@ function buildRasterStyle(layer: string, host: HTMLElement): StyleSpecification 
 function buildTopoStyle(): StyleSpecification {
   const dem = getDemSource();
   const MINOR = '#9a7a4e';
-  const MAJOR = '#7a5a32';
+  const MAJOR = '#6e4f2c';
   const PAPER = '#ece5d5';
   return {
     version: 8,
@@ -131,7 +131,7 @@ function buildTopoStyle(): StyleSpecification {
             overzoom: 1,
           }),
         ],
-        maxzoom: 15,
+        maxzoom: 16,
       },
     },
     layers: [
@@ -153,7 +153,7 @@ function buildTopoStyle(): StyleSpecification {
         source: 'yv-contours',
         'source-layer': 'contours',
         filter: ['!=', ['get', 'level'], 1],
-        paint: { 'line-color': MINOR, 'line-width': 0.7, 'line-opacity': 0.5 },
+        paint: { 'line-color': MINOR, 'line-width': 0.8, 'line-opacity': 0.55 },
       },
       {
         id: 'yv-contour-major',
@@ -161,7 +161,7 @@ function buildTopoStyle(): StyleSpecification {
         source: 'yv-contours',
         'source-layer': 'contours',
         filter: ['==', ['get', 'level'], 1],
-        paint: { 'line-color': MAJOR, 'line-width': 1.3, 'line-opacity': 0.65 },
+        paint: { 'line-color': MAJOR, 'line-width': 1.4, 'line-opacity': 0.8 },
       },
       {
         id: 'yv-contour-label',
@@ -173,7 +173,7 @@ function buildTopoStyle(): StyleSpecification {
           'symbol-placement': 'line',
           'text-field': ['concat', ['number-format', ['get', 'ele'], {}], ' m'],
           'text-size': 10,
-          'text-font': ['Open Sans Regular'],
+          'text-font': ['Noto Sans Regular'],
           'symbol-spacing': 220,
         },
         paint: {

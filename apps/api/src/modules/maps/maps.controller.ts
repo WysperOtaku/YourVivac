@@ -31,6 +31,10 @@ export const mapsController = {
     const { body, contentType } = await getTile(layer, z, x, y);
     res.setHeader('Content-Type', contentType);
     res.setHeader('Cache-Control', `public, max-age=${env.TILE_CACHE_TTL}, immutable`);
+    // CORS abierto en teselas: maplibre-contour decodifica el DEM en un canvas y
+    // necesita la imagen «no contaminada» (sin CORS, getImageData falla → 0 curvas).
+    res.setHeader('Access-Control-Allow-Origin', '*');
+    res.setHeader('Cross-Origin-Resource-Policy', 'cross-origin');
     res.send(body);
   }),
 
