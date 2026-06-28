@@ -1,0 +1,94 @@
+# yv-hiking.brf — Perfil de senderismo de montaña de YourVivac
+#
+# Basado en los perfiles `trekking`/`hiking` de BRouter (abrensch/brouter) y en
+# los perfiles Hiking-Mountain-SAC de poutnikl. Objetivos:
+#   - Favorecer sendas, caminos y senderos (highway=path/track/footway/...).
+#   - Penalizar el asfalto y los pavimentos duros (preferimos terreno natural).
+#   - Ser consciente del desnivel (consider_elevation + costes uphill/downhill).
+#   - Admitir hasta montañismo moderado (sac_scale = demanding_mountain_hiking);
+#     por encima (alpine_hiking y superiores) se bloquea la vía.
+
+---context:global
+
+# Tener en cuenta la altitud al elegir la ruta.
+assign consider_elevation   true
+
+# Coste del desnivel: penaliza tramos con mucha pendiente por encima del corte
+# (en %). Senderismo: subir y bajar cuesta, pero no evitamos la montaña.
+assign downhillcost     60
+assign downhillcutoff   1.5
+assign uphillcost       60
+assign uphillcutoff     1.5
+
+# En montaña son habituales escalones y, a veces, vados/ferries.
+assign allow_steps      true
+assign allow_ferries    true
+
+# Instrucciones de giro básicas.
+assign turnInstructionMode  1
+
+---context:way
+
+assign turncost     0
+assign initialcost  0
+
+# --- Accesibilidad a pie ---------------------------------------------------
+# Bloqueamos vías con acceso prohibido a pie. Si access=no/private pero el pie
+# está permitido explícitamente, se autoriza.
+assign access_penalty
+   switch foot=no|private|use_sidepath      100000
+   switch access=no|private
+      switch foot=yes|designated|permissive  0  100000
+   0
+
+# --- Dificultad SAC --------------------------------------------------------
+# Penalización creciente con la dificultad; a partir de alpine_hiking, bloqueo.
+assign sac_penalty
+   switch sac_scale=mountain_hiking                                          0.3
+   switch sac_scale=demanding_mountain_hiking                               1.0
+   switch sac_scale=alpine_hiking|demanding_alpine_hiking|difficult_alpine_hiking  100000
+   0.0
+
+# --- Coste base por tipo de vía -------------------------------------------
+# Cuanto menor, más preferida. Favorecemos sendas y caminos.
+assign highway_cost
+   switch highway=path|footway|bridleway|steps                 1.0
+   switch highway=track                                        1.1
+   switch highway=pedestrian|living_street                     1.2
+   switch highway=cycleway|service|residential|unclassified    1.4
+   switch highway=tertiary|tertiary_link                       2.0
+   switch highway=secondary|secondary_link                     3.0
+   switch highway=primary|primary_link|trunk|trunk_link|motorway|motorway_link  100000
+   switch highway=                                             100000
+   1.6
+
+# --- Penalización por asfalto / pavimento ----------------------------------
+# Preferimos terreno natural: el asfalto suma coste extra.
+assign surface_penalty
+   switch surface=asphalt|paved|concrete|concrete:lanes|concrete:plates|paving_stones|sett  0.4
+   switch surface=cobblestone                                                               0.3
+   0.0
+
+# --- Pequeño incentivo a rutas de senderismo señalizadas -------------------
+assign hiking_route_bonus
+   switch route_hiking=yes   -0.15
+   0.0
+
+# --- Coste final -----------------------------------------------------------
+# Nunca por debajo de 1.0 para tramos transitables; los bloqueos (100000)
+# dominan la suma.
+assign costfactor
+   max 1.0
+       add access_penalty
+       add sac_penalty
+       add hiking_route_bonus
+       add highway_cost surface_penalty
+
+---context:node
+
+# Penalización al cruzar nodos: barreras superables suman algo; pie prohibido
+# o barreras infranqueables bloquean.
+assign initialcost
+   switch foot=no|private   100000
+   switch barrier=gate|lift_gate|kissing_gate|stile|cattle_grid|block|bollard|chain|swing_gate  40
+   0
