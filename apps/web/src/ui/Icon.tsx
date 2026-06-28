@@ -47,6 +47,7 @@ import {
   Sun,
   Moon,
   MountainSnow,
+  Maximize2,
   type LucideIcon,
 } from 'lucide-react';
 
@@ -100,6 +101,7 @@ const MAP: Record<string, LucideIcon> = {
   sun: Sun,
   moon: Moon,
   'mountain-snow': MountainSnow,
+  expand: Maximize2,
 };
 
 export type IconName = keyof typeof MAP;

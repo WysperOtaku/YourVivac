@@ -1,4 +1,4 @@
-import type { CSSProperties } from 'react';
+import { useState, type CSSProperties } from 'react';
 import Markdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import rehypeSanitize from 'rehype-sanitize';
@@ -7,6 +7,7 @@ import { Avatar, Icon } from '@/ui';
 import { isMapsConfigured, DEFAULT_CENTER } from '@/lib/maps';
 import { TopoMap } from '@/components/maps/TopoMap';
 import { TopoMapLibre } from '@/components/maps/TopoMapLibre';
+import { ExpandedMapModal } from '@/components/maps/ExpandedMapModal';
 
 interface PinViewProps {
   pin: Pin;
@@ -50,8 +51,25 @@ function Reactions({ pin, meId, onReact }: { pin: Pin; meId?: string; onReact?: 
   );
 }
 
+/** Botón flotante para ampliar el mapa de un pin a pantalla completa. */
+function ExpandBtn({ onClick }: { onClick: () => void }) {
+  return (
+    <button
+      onClick={(e) => {
+        e.stopPropagation();
+        onClick();
+      }}
+      aria-label="Ampliar mapa"
+      className="absolute right-1.5 top-1.5 z-10 grid h-7 w-7 place-items-center rounded-md bg-bg/85 text-ink-2 shadow-[inset_0_0_0_1px_var(--line)] hover:text-accent"
+    >
+      <Icon name="expand" size={14} />
+    </button>
+  );
+}
+
 /** Renderiza un pin real según su tipo. El posicionamiento lo controla el tablero. */
 export function PinView({ pin, authorName, canEdit, onDelete, onReact, meId, style, className, flat }: PinViewProps) {
+  const [expanded, setExpanded] = useState(false);
   const wrap = (inner: React.ReactNode, extra?: string) => (
     <div className={`pin ${extra ?? ''} ${className ?? ''}`} style={style}>
       {!flat && <span className={`pin__tack ${tackClass(pin.type)}`} />}
@@ -154,24 +172,41 @@ export function PinView({ pin, authorName, canEdit, onDelete, onReact, meId, sty
         </>,
       );
 
-    case 'topo':
+    case 'topo': {
+      const t = pin.topo;
       return wrap(
         <>
           <Head icon="mountain" label="Mapa topo" author={authorName} onDelete={onDelete} canEdit={canEdit} />
           <div className="pin__body">
-            <TopoMapLibre
-              center={pin.topo.center}
-              zoom={pin.topo.zoom}
-              layer={pin.topo.layer}
-              marks={pin.topo.marks}
-              interactive={false}
-              className="h-28 overflow-hidden rounded-md"
-            />
-            <div className="mt-1.5 font-display text-sm">{pin.topo.label}</div>
+            <div
+              className="relative h-44 cursor-zoom-in overflow-hidden rounded-md"
+              onClick={() => setExpanded(true)}
+            >
+              <TopoMapLibre
+                center={t.center}
+                zoom={t.zoom}
+                layer={t.layer}
+                marks={t.marks}
+                interactive={false}
+                className="absolute inset-0"
+              />
+              <ExpandBtn onClick={() => setExpanded(true)} />
+            </div>
+            <div className="mt-1.5 font-display text-sm">{t.label}</div>
             <Reactions pin={pin} meId={meId} onReact={onReact} />
           </div>
+          <ExpandedMapModal
+            open={expanded}
+            onClose={() => setExpanded(false)}
+            title={t.label}
+            center={t.center}
+            zoom={t.zoom}
+            layer={t.layer}
+            marks={t.marks}
+          />
         </>,
       );
+    }
 
     case 'route': {
       const r = pin.route;
@@ -181,31 +216,49 @@ export function PinView({ pin, authorName, canEdit, onDelete, onReact, meId, sty
       const marks: TopoMark[] = [];
       if (start) marks.push({ coords: start, kind: 'punto', label: 'Inicio' });
       if (end) marks.push({ coords: end, kind: 'punto', label: 'Fin' });
+      const stats = (
+        <div className="row gap6 mt-1 flex-wrap">
+          <span className="chip mono" style={{ fontSize: 10, padding: '1px 7px' }}>
+            <Icon name="ruler" size={11} /> {(r.distanceM / 1000).toFixed(1)} km
+          </span>
+          <span className="chip mono" style={{ fontSize: 10, padding: '1px 7px' }}>
+            <Icon name="elev" size={11} /> +{Math.round(r.ascentM)} m
+          </span>
+          <span className="chip mono" style={{ fontSize: 10, padding: '1px 7px' }}>
+            <Icon name="elev" size={11} className="rotate-180" /> −{Math.round(r.descentM)} m
+          </span>
+        </div>
+      );
       return wrap(
         <>
           <Head icon="route" label="Ruta" author={authorName} onDelete={onDelete} canEdit={canEdit} />
           <div className="pin__body">
-            <TopoMapLibre
-              center={start ?? DEFAULT_CENTER}
-              route={r.geometry}
-              marks={marks}
-              interactive={false}
-              className="h-28 overflow-hidden rounded-md"
-            />
-            <div className="mt-1.5 font-display text-sm">{r.name}</div>
-            <div className="row gap6 mt-1 flex-wrap">
-              <span className="chip mono" style={{ fontSize: 10, padding: '1px 7px' }}>
-                <Icon name="ruler" size={11} /> {(r.distanceM / 1000).toFixed(1)} km
-              </span>
-              <span className="chip mono" style={{ fontSize: 10, padding: '1px 7px' }}>
-                <Icon name="elev" size={11} /> +{Math.round(r.ascentM)} m
-              </span>
-              <span className="chip mono" style={{ fontSize: 10, padding: '1px 7px' }}>
-                <Icon name="elev" size={11} className="rotate-180" /> −{Math.round(r.descentM)} m
-              </span>
+            <div
+              className="relative h-44 cursor-zoom-in overflow-hidden rounded-md"
+              onClick={() => setExpanded(true)}
+            >
+              <TopoMapLibre
+                center={start ?? DEFAULT_CENTER}
+                route={r.geometry}
+                marks={marks}
+                interactive={false}
+                className="absolute inset-0"
+              />
+              <ExpandBtn onClick={() => setExpanded(true)} />
             </div>
+            <div className="mt-1.5 font-display text-sm">{r.name}</div>
+            {stats}
             <Reactions pin={pin} meId={meId} onReact={onReact} />
           </div>
+          <ExpandedMapModal
+            open={expanded}
+            onClose={() => setExpanded(false)}
+            title={r.name}
+            center={start ?? DEFAULT_CENTER}
+            route={r.geometry}
+            marks={marks}
+            footer={stats}
+          />
         </>,
       );
     }
