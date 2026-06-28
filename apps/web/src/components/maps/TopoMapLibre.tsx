@@ -78,6 +78,12 @@ function readToken(el: HTMLElement, name: string, fallback: string): string {
   return v || fallback;
 }
 
+/** URL ABSOLUTA de teselas (MapLibre resuelve mal las relativas en fuentes vector). */
+function tileUrlAbs(layer: string): string {
+  const u = api.maps.tileUrl(layer);
+  return u.startsWith('http') ? u : `${window.location.origin}${u}`;
+}
+
 /** Bandas hipsométricas [altura, color] según el tema (estética cartoon/plana). */
 function topoBands(theme: ThemeName): [number, string][] {
   return theme === 'dark'
@@ -108,7 +114,7 @@ function buildRasterStyle(layer: string, host: HTMLElement): StyleSpecification 
   // structuredClone evita mutar el JSON importado (compartido entre instancias).
   const style = structuredClone(rawStyle) as unknown as StyleSpecification;
   const source = style.sources['yv-topo'] as RasterSourceSpecification;
-  source.tiles = [api.maps.tileUrl(layer)];
+  source.tiles = [tileUrlAbs(layer)];
   const bg = readToken(host, '--bg-3', '#1c271f');
   const bgLayer = style.layers.find((l) => l.id === 'yv-background');
   if (bgLayer && bgLayer.type === 'background') {
@@ -134,9 +140,9 @@ function buildTopoStyle(theme: ThemeName): StyleSpecification {
     glyphs: 'https://demotiles.maplibre.org/font/{fontstack}/{range}.pbf',
     sources: {
       // MDT del IGN (encoding mapbox): alimenta color-relief y hillshade.
-      'yv-dem': { type: 'raster-dem', tiles: [api.maps.tileUrl('mdt')], encoding: 'mapbox', tileSize: 256, maxzoom: 14 },
+      'yv-dem': { type: 'raster-dem', tiles: [tileUrlAbs('mdt')], encoding: 'mapbox', tileSize: 256, maxzoom: 14 },
       // Base vectorial del IGN (BTN): de aquí salen las curvas de nivel (y, en F2, todo lo demás).
-      'yv-btn': { type: 'vector', tiles: [api.maps.tileUrl('btn')], maxzoom: 14 },
+      'yv-btn': { type: 'vector', tiles: [tileUrlAbs('btn')], minzoom: 0, maxzoom: 14 },
     },
     layers: [
       { id: 'yv-background', type: 'background', paint: { 'background-color': bg } },
