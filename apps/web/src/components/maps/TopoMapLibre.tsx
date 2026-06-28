@@ -22,6 +22,7 @@ import { api } from '@/lib/api';
 import { cn } from '@/lib/cn';
 import { useUiStore } from '@/stores/uiStore';
 import type { LatLng } from '@/lib/maps';
+import { btnOverlayLayers, registerTopoIcons } from './btnLayers';
 import rawStyle from './yv-topo-style.json';
 import './topo-maplibre.css';
 
@@ -151,6 +152,8 @@ function buildTopoStyle(theme: ThemeName): StyleSpecification {
         'source-layer': 'btn0201l_cur_niv',
         paint: { 'line-color': contour, 'line-width': 0.6, 'line-opacity': dark ? 0.4 : 0.5 },
       },
+      // Calco vectorial del IGN: agua, viario, topónimos, cumbres, refugios (F2).
+      ...btnOverlayLayers(theme),
     ],
   } as unknown as StyleSpecification;
 }
@@ -245,6 +248,8 @@ export function TopoMapLibre({
       maxTileCacheSize: 512,
     });
     mapRef.current = map;
+    // Iconos YourVivac (cumbre, refugio) generados en runtime para las symbol layers BTN.
+    registerTopoIcons(map, theme);
 
     if (interactive) {
       map.addControl(new maplibregl.NavigationControl({ showCompass: false }), 'top-right');
@@ -391,9 +396,10 @@ export function TopoMapLibre({
       <div ref={containerRef} className="absolute inset-0" aria-label="Mapa topográfico" />
       {controls && (
         <>
-          {/* Selector de vista (Topo YV / IGN / Relieve / Satélite) */}
+          {/* Selector de vista (Topo YV / IGN / Relieve / Satélite). Bajado para no
+              chocar con el tirador de arrastre (arriba-centro). */}
           <div
-            className="absolute left-2 top-2 z-10 row gap-1 rounded-control bg-bg-2/90 p-1 shadow-[inset_0_0_0_1px_var(--line)] backdrop-blur"
+            className="absolute left-2 top-11 z-10 row gap-1 rounded-control bg-bg-2/90 p-1 shadow-[inset_0_0_0_1px_var(--line)] backdrop-blur"
             onClick={(e) => e.stopPropagation()}
           >
             {VIEWS.map((v) => (

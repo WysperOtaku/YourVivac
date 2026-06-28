@@ -95,8 +95,9 @@ function PinMapOverlay({
 }) {
   return (
     <>
-      {/* Acciones en columna a la derecha: no chocan con el selector de vista (arriba-izq). */}
-      <div className="absolute right-1.5 top-1.5 z-10 flex flex-col gap-1.5" onClick={(e) => e.stopPropagation()}>
+      {/* Acciones en columna en el borde IZQUIERDO, justo bajo el selector de vista
+          (así no se pisan con los controles de zoom del mapa, a la derecha). */}
+      <div className="absolute left-2 top-[5.5rem] z-10 flex flex-col gap-1.5" onClick={(e) => e.stopPropagation()}>
         <MapBtn icon="expand" label="Ampliar mapa" onClick={onExpand} />
         {canEdit && onEdit && <MapBtn icon="edit" label="Editar pin" onClick={onEdit} />}
         {canEdit && onDelete && <MapBtn icon="x" label="Borrar pin" onClick={onDelete} />}
