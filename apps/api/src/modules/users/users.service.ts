@@ -5,6 +5,7 @@ import type {
   UpdateSettingsRequest,
   UserProfileResponse,
   UserSearchResult,
+  UserSuggestion,
 } from '@yourvivac/types';
 import { UserModel } from '../../models/user.model.js';
 import { FollowModel } from '../../models/social.model.js';
@@ -16,6 +17,26 @@ import { optimizeImage } from '../../lib/images.js';
 import { uploadBuffer } from '../../lib/cloudinary.js';
 import { NotificationModel } from '../../models/notification.model.js';
 import { HttpError } from '../../middleware/error.js';
+
+/** Forma mínima de un documento de usuario necesaria para construir el resultado público. */
+type UserRowSource = {
+  _id: unknown;
+  displayName: string;
+  username: string;
+  avatar?: { url?: string | null; publicId?: string | null } | null;
+  role: 'user' | 'guide' | 'admin';
+};
+
+/** Mapea un documento de usuario a la forma pública UserSearchResult/UserSuggestion. */
+function toUserResult(u: UserRowSource): UserSearchResult {
+  return {
+    id: String(u._id),
+    displayName: u.displayName,
+    username: u.username,
+    avatar: u.avatar ? { url: u.avatar.url ?? '', publicId: u.avatar.publicId ?? '' } : undefined,
+    role: u.role,
+  };
+}
 
 export const usersService = {
   async profile(username: string, viewerId?: string): Promise<UserProfileResponse> {
@@ -67,14 +88,52 @@ export const usersService = {
     const term = q?.trim();
     if (!term || term.length < 2) return [];
     const rx = { $regex: term, $options: 'i' };
-    const docs = await UserModel.find({ status: 'active', $or: [{ username: rx }, { displayName: rx }] }).limit(10);
-    return docs.map((u) => ({
-      id: String(u._id),
-      displayName: u.displayName,
-      username: u.username,
-      avatar: u.avatar ? { url: u.avatar.url ?? '', publicId: u.avatar.publicId ?? '' } : undefined,
-      role: u.role,
-    }));
+    // Empareja por @usuario, nombre o email exacto (insensible a mayúsculas).
+    const or: Record<string, unknown>[] = [{ username: rx }, { displayName: rx }];
+    if (term.includes('@')) or.push({ email: term.toLowerCase() });
+    const docs = await UserModel.find({ status: 'active', $or: or }).limit(10);
+    return docs.map(toUserResult);
+  },
+
+  async suggestions(userId: string): Promise<UserSuggestion[]> {
+    const LIMIT = 12;
+    // Conserva el orden de relevancia: primero a quién sigues, luego co-miembros.
+    const ids: string[] = [];
+    const seen = new Set<string>([userId]); // excluye al propio usuario desde el inicio
+    const add = (id?: unknown) => {
+      const s = id == null ? '' : String(id);
+      if (s && !seen.has(s)) {
+        seen.add(s);
+        ids.push(s);
+      }
+    };
+
+    // 1) Personas a las que el usuario sigue (lo más relevante).
+    const follows = await FollowModel.find({ followerId: userId }).sort({ createdAt: -1 }).limit(LIMIT);
+    for (const f of follows) add(f.followingId);
+
+    // 2) Si hay pocas, completa con co-miembros recientes de sus salidas.
+    if (ids.length < LIMIT) {
+      const trips = await TripModel.find({ $or: [{ owner: userId }, { 'members.userId': userId }] })
+        .sort({ updatedAt: -1 })
+        .limit(20);
+      for (const t of trips) {
+        add(t.owner);
+        for (const m of t.members ?? []) add(m?.userId);
+        if (ids.length >= LIMIT) break;
+      }
+    }
+
+    const finalIds = ids.slice(0, LIMIT);
+    if (finalIds.length === 0) return [];
+
+    const docs = await UserModel.find({ _id: { $in: finalIds }, status: 'active' });
+    const byId = new Map(docs.map((u) => [String(u._id), u]));
+    // Reordena según la relevancia calculada (el $in no garantiza orden).
+    return finalIds
+      .map((id) => byId.get(id))
+      .filter((u): u is NonNullable<typeof u> => Boolean(u))
+      .map(toUserResult);
   },
 
   async updateSettings(userId: string, patch: UpdateSettingsRequest) {

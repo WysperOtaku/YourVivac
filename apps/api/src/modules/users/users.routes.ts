@@ -12,6 +12,7 @@ usersRouter.patch('/me', authGuard, validate(updateUserSchema), usersController.
 usersRouter.patch('/me/settings', authGuard, validate(updateSettingsSchema), usersController.updateSettings);
 usersRouter.post('/me/avatar', authGuard, upload.single('file'), usersController.avatar);
 usersRouter.get('/search', authGuard, usersController.search);
+usersRouter.get('/suggestions', authGuard, usersController.suggestions);
 usersRouter.get('/:id/trips', usersController.trips);
 usersRouter.get('/:id/tips', usersController.tips);
 usersRouter.post('/:id/follow', authGuard, usersController.follow);
