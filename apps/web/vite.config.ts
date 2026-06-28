@@ -12,7 +12,9 @@ const apiProxyTarget = process.env.API_PROXY_TARGET || 'http://localhost:4000';
 // CORS_ORIGINS del API. Para /api no hace falta (el navegador lo ve como same-origin).
 const proxyOrigin = process.env.WEB_PROXY_ORIGIN || 'http://localhost:8080';
 const proxy = {
-  '/api': { target: apiProxyTarget, changeOrigin: true },
+  // xfwd: añade X-Forwarded-For con la IP REAL del cliente para que el API
+  // (trust proxy) la use en el rate-limit por cliente (si no, todos comparten cubo).
+  '/api': { target: apiProxyTarget, changeOrigin: true, xfwd: true },
   '/socket.io': {
     target: apiProxyTarget,
     changeOrigin: true,
