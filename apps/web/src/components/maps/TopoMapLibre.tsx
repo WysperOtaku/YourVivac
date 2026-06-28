@@ -77,11 +77,29 @@ function readToken(el: HTMLElement, name: string, fallback: string): string {
   return v || fallback;
 }
 
-/** Rampa hipsométrica (altura→color) según el tema. */
-function topoRamp(theme: ThemeName): (number | string)[] {
+/** Bandas hipsométricas [altura, color] según el tema (estética cartoon/plana). */
+function topoBands(theme: ThemeName): [number, string][] {
   return theme === 'dark'
-    ? [0, '#16221b', 200, '#1c2a20', 500, '#243528', 900, '#2f3d2b', 1400, '#3e4633', 1900, '#534c39', 2400, '#6e6450', 2900, '#8f8771', 3400, '#b6ad96']
-    : [0, '#cfe0b4', 200, '#c2d6a0', 500, '#cbd79c', 900, '#d8cf9a', 1400, '#d2bd84', 1900, '#c2a06a', 2400, '#ad8a64', 2900, '#c2b29a', 3400, '#ece5d6'];
+    ? [
+        [0, '#18241c'], [300, '#1d2a20'], [600, '#243025'], [900, '#2c3829'],
+        [1200, '#37402e'], [1600, '#454a35'], [2000, '#56533d'], [2400, '#6b6450'],
+        [2800, '#878069'], [3200, '#a8a087'],
+      ]
+    : [
+        [0, '#d8e8bf'], [300, '#c9dca6'], [600, '#cdd79a'], [900, '#d6cd93'],
+        [1200, '#d8c184'], [1600, '#cbaa6e'], [2000, '#bf9a63'], [2400, '#b89a78'],
+        [2800, '#cfc3a8'], [3200, '#eae3d2'],
+      ];
+}
+
+/** Construye un color-relief de BANDAS planas (cartoon): saltos casi netos por cota. */
+function steppedColorRelief(bands: [number, string][]): unknown[] {
+  const expr: unknown[] = ['interpolate', ['linear'], ['elevation']];
+  bands.forEach(([elev, color], i) => {
+    if (i > 0) expr.push(elev - 0.5, bands[i - 1]![1]); // mantiene el color anterior hasta el salto
+    expr.push(elev, color);
+  });
+  return expr;
 }
 
 /** Style raster (vistas IGN mtn/relieve/ortofoto): tesela IGN reestilada sutilmente. */
@@ -105,8 +123,7 @@ function buildRasterStyle(layer: string, host: HTMLElement): StyleSpecification 
  */
 function buildTopoStyle(theme: ThemeName): StyleSpecification {
   const dark = theme === 'dark';
-  const colorRelief: unknown[] = ['interpolate', ['linear'], ['elevation']];
-  for (const v of topoRamp(theme)) colorRelief.push(v);
+  const colorRelief = steppedColorRelief(topoBands(theme));
   const bg = dark ? '#10180f' : '#dfe6c8';
   const contour = dark ? '#6f6a55' : '#9a7a4e';
 
@@ -124,8 +141,8 @@ function buildTopoStyle(theme: ThemeName): StyleSpecification {
       { id: 'yv-background', type: 'background', paint: { 'background-color': bg } },
       // Terreno coloreado por altura (hipsométrico).
       { id: 'yv-color-relief', type: 'color-relief', source: 'yv-dem', paint: { 'color-relief-color': colorRelief } },
-      // Sombreado de relieve sutil (profundidad, sin dominar).
-      { id: 'yv-hillshade', type: 'hillshade', source: 'yv-dem', paint: { 'hillshade-exaggeration': 0.14, 'hillshade-method': 'igor' } },
+      // Sombreado MUY tenue: cartoon/vector, no relieve fotográfico.
+      { id: 'yv-hillshade', type: 'hillshade', source: 'yv-dem', paint: { 'hillshade-exaggeration': 0.07, 'hillshade-method': 'igor' } },
       // Curvas de nivel del IGN (BTN).
       {
         id: 'yv-contour',

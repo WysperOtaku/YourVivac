@@ -95,10 +95,11 @@ function PinMapOverlay({
 }) {
   return (
     <>
-      <div className="absolute right-1.5 top-1.5 z-10 row gap6" onClick={(e) => e.stopPropagation()}>
+      {/* Acciones en columna a la derecha: no chocan con el selector de vista (arriba-izq). */}
+      <div className="absolute right-1.5 top-1.5 z-10 flex flex-col gap-1.5" onClick={(e) => e.stopPropagation()}>
+        <MapBtn icon="expand" label="Ampliar mapa" onClick={onExpand} />
         {canEdit && onEdit && <MapBtn icon="edit" label="Editar pin" onClick={onEdit} />}
         {canEdit && onDelete && <MapBtn icon="x" label="Borrar pin" onClick={onDelete} />}
-        <MapBtn icon="expand" label="Ampliar mapa" onClick={onExpand} />
       </div>
       <div className="pointer-events-none absolute inset-x-0 bottom-0 z-[5] bg-gradient-to-t from-black/65 via-black/25 to-transparent px-2.5 pb-2 pt-8">
         <div className="row gap6 font-display text-[13.5px] text-white">
@@ -229,13 +230,13 @@ export function PinView({ pin, authorName, canEdit, onDelete, onEdit, onReact, m
       const t = pin.topo;
       return wrap(
         <>
-          <div className="relative h-56 cursor-zoom-in" onClick={() => setExpanded(true)}>
+          <div className="relative h-56">
             <TopoMapLibre
               center={t.center}
               zoom={t.zoom}
               layer={t.layer}
               marks={t.marks}
-              interactive={false}
+              interactive
               controls
               className="absolute inset-0"
             />
@@ -299,13 +300,13 @@ export function PinView({ pin, authorName, canEdit, onDelete, onEdit, onReact, m
       );
       return wrap(
         <>
-          <div className="relative h-56 cursor-zoom-in" onClick={() => setExpanded(true)}>
+          <div className="relative h-56">
             <TopoMapLibre
               center={start ?? DEFAULT_CENTER}
               layer={r.layer ?? 'base'}
               route={r.geometry}
               marks={marks}
-              interactive={false}
+              interactive
               controls
               className="absolute inset-0"
             />

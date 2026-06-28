@@ -38,9 +38,10 @@ export function ExpandedMapModal({ open, onClose, title, center, zoom, layer, ma
 
   if (!open) return null;
   return (
-    <div className="fixed inset-0 z-[60] flex flex-col sm:p-4">
+    <div className="fixed inset-0 z-[60] flex flex-col sm:p-3">
       <div className="absolute inset-0 hidden bg-black/60 sm:block" onClick={onClose} />
-      <div className="relative z-10 mx-auto flex h-full w-full flex-col overflow-hidden bg-bg-2 sm:max-w-5xl sm:rounded-card sm:shadow">
+      {/* Móvil: pantalla completa. Escritorio: panel enorme (casi toda la pantalla). */}
+      <div className="relative z-10 mx-auto flex h-full w-full flex-col overflow-hidden bg-bg-2 sm:max-w-[92rem] sm:rounded-card sm:shadow">
         <header className="row gap10 flex-none px-4 py-3 shadow-[inset_0_-1px_0_var(--line)]">
           <Icon name="mountain" size={16} className="text-accent" />
           <h3 className="grow truncate text-base">{title}</h3>

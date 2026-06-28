@@ -363,16 +363,24 @@ function FreePin({ pin, dropped, children }: { pin: Pin; dropped: boolean; child
     rotate: `${pin.layout.rotation}deg`,
     translate: transform ? `${transform.x}px ${transform.y}px` : undefined,
     touchAction: 'none',
-    cursor: 'grab',
+    cursor: wide ? 'default' : 'grab',
   };
+  // Pines de mapa: el mapa es interactivo (pan con la mano), así que el pin se
+  // mueve por un tirador; el resto de pines se arrastran por toda la tarjeta.
   return (
     <div
       ref={setNodeRef}
       style={style}
-      className={`pin-free ${isDragging ? 'is-dragging' : ''} ${dropped ? 'is-dropped' : ''}`}
-      {...listeners}
+      className={`pin-free ${wide ? '[&>.pin]:w-full' : ''} ${isDragging ? 'is-dragging' : ''} ${dropped ? 'is-dropped' : ''}`}
       {...attributes}
+      {...(wide ? {} : listeners)}
     >
+      {wide && (
+        <button className="pin-drag-handle" aria-label="Mover pin" {...listeners}>
+          <span />
+          <span />
+        </button>
+      )}
       {children}
     </div>
   );
@@ -395,8 +403,14 @@ function SwapPin({ pin, children }: { pin: Pin; children: React.ReactNode }) {
       style={style}
       className={`pin-postit mb-3 break-inside-avoid [&>.pin]:static [&>.pin]:w-full ${wide ? '[column-span:all]' : ''}`}
       {...attributes}
-      {...listeners}
+      {...(wide ? {} : listeners)}
     >
+      {wide && (
+        <button className="pin-drag-handle" aria-label="Mover pin" {...listeners}>
+          <span />
+          <span />
+        </button>
+      )}
       {children}
     </div>
   );
