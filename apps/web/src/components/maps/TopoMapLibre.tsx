@@ -132,7 +132,7 @@ function buildTopoStyle(theme: ThemeName): StyleSpecification {
   const dark = theme === 'dark';
   const colorRelief = steppedColorRelief(topoBands(theme));
   const bg = dark ? '#10180f' : '#dfe6c8';
-  const contour = dark ? '#6f6a55' : '#9a7a4e';
+  const contour = dark ? '#8a7d5e' : '#9c7236';
 
   return {
     version: 8,
@@ -158,7 +158,8 @@ function buildTopoStyle(theme: ThemeName): StyleSpecification {
         type: 'line',
         source: 'yv-btn',
         'source-layer': 'btn0201l_cur_niv',
-        paint: { 'line-color': contour, 'line-width': 0.6, 'line-opacity': dark ? 0.4 : 0.5 },
+        minzoom: 12,
+        paint: { 'line-color': contour, 'line-width': ['interpolate', ['linear'], ['zoom'], 12, 0.5, 15, 0.9], 'line-opacity': dark ? 0.55 : 0.62 },
       },
       // Calco vectorial del IGN: agua, viario, topónimos, cumbres, refugios (F2).
       ...btnOverlayLayers(theme),
