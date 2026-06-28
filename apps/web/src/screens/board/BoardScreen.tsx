@@ -53,6 +53,7 @@ export function BoardScreen() {
   const [adding, setAdding] = useState(false);
   const [inviteOpen, setInviteOpen] = useState(false);
   const [editOpen, setEditOpen] = useState(false);
+  const [editPin, setEditPin] = useState<Pin | null>(null);
   const [droppedId, setDroppedId] = useState<string | null>(null);
 
   const tripQ = useQuery({ queryKey: ['trip', id], queryFn: () => api.trips.get(id), retry: false });
@@ -103,6 +104,7 @@ export function BoardScreen() {
     canEdit: canEdit(pin),
     meId: me?.id,
     onDelete: () => deletePinMut.mutate(pin.id),
+    onEdit: () => setEditPin(pin),
     onReact: (emoji: string) => reactMut.mutate({ pinId: pin.id, emoji }),
   });
 
@@ -277,7 +279,15 @@ export function BoardScreen() {
             {trip && <ChatPanel tripId={id} members={members} className="flex-1" />}
           </aside>
         </div>
-        <AddPinModal open={adding} onClose={() => setAdding(false)} tripId={id} />
+        <AddPinModal
+          open={adding || !!editPin}
+          onClose={() => {
+            setAdding(false);
+            setEditPin(null);
+          }}
+          tripId={id}
+          editPin={editPin}
+        />
         <InviteMembersModal open={inviteOpen} onClose={() => setInviteOpen(false)} tripId={id} existingIds={members.map((m) => m.id)} />
         {trip && isOwner && <EditTripModal open={editOpen} onClose={() => setEditOpen(false)} trip={trip} />}
       </AppShell>

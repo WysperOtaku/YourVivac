@@ -153,9 +153,25 @@ export interface CreatePinRequest {
   };
 }
 export interface UpdatePinRequest {
-  layout?: PinLayoutInput;
+  layout?: Partial<PinLayoutInput>;
   note?: { markdown: string };
   text?: { body?: string; color?: string };
+  photo?: { media: MediaRef; caption?: string };
+  link?: { url: string };
+  map?: { label: string; coords: GeoCoords; placeId?: string; address?: string; path?: GeoCoords[] };
+  topo?: { label: string; center: GeoCoords; zoom: number; layer: TopoLayer; marks?: TopoMark[] };
+  route?: {
+    name: string;
+    profile: RouteProfile;
+    waypoints: GeoCoords[];
+    geometry: GeoCoords[];
+    distanceM: number;
+    ascentM: number;
+    descentM: number;
+    durationMin?: number;
+    layer?: TopoLayer;
+  };
+  list?: { gearListId: Id };
 }
 export interface ReactionRequest {
   emoji: string;

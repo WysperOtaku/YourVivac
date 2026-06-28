@@ -86,6 +86,9 @@ export const createPinSchema = z.discriminatedUnion('type', [
   }),
 ]);
 
+// Edición de pin: layout y/o el contenido del propio tipo (el servidor solo
+// aplica la clave que coincide con el tipo del pin). Reutiliza las mismas formas
+// que la creación para que el autor/propietario pueda editar cualquier pin.
 export const updatePinSchema = z
   .object({
     layout: pinLayout.partial().optional(),
@@ -93,6 +96,43 @@ export const updatePinSchema = z
     text: z
       .object({ body: z.string().min(1).max(500).optional(), color: z.string().optional() })
       .optional(),
+    photo: z.object({ media: mediaRef, caption: z.string().max(280).optional() }).optional(),
+    link: z.object({ url: z.string().url() }).optional(),
+    map: z
+      .object({
+        label: z.string().min(1),
+        coords,
+        placeId: z.string().optional(),
+        address: z.string().optional(),
+        path: z.array(coords).max(1000).optional(),
+      })
+      .optional(),
+    topo: z
+      .object({
+        label: z.string().min(1).max(120),
+        center: coords,
+        zoom: z.number().min(1).max(20),
+        layer: topoLayer,
+        marks: z
+          .array(z.object({ coords, kind: topoMarkKind, label: z.string().max(80).optional() }))
+          .max(100)
+          .optional(),
+      })
+      .optional(),
+    route: z
+      .object({
+        name: z.string().min(1).max(120),
+        profile: routeProfile,
+        waypoints: z.array(coords).min(2).max(50),
+        geometry: z.array(coords).min(2).max(20000),
+        distanceM: z.number().nonnegative(),
+        ascentM: z.number().nonnegative(),
+        descentM: z.number().nonnegative(),
+        durationMin: z.number().nonnegative().optional(),
+        layer: topoLayer.optional(),
+      })
+      .optional(),
+    list: z.object({ gearListId: objectId }).optional(),
   })
   .strict();
 

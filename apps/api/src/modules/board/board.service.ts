@@ -111,8 +111,17 @@ export const boardService = {
     if (!isAuthor && !isOwner) throw HttpError.forbidden('Sin permiso sobre este pin');
 
     if (patch.layout) pin.set('layout', { ...pin.layout, ...(patch.layout as object) });
-    if (patch.note) pin.set('note', { markdown: sanitizeHtml(String((patch.note as { markdown: string }).markdown), sanitizeOpts) });
-    if (patch.text) pin.set('text', { ...pin.text, ...(patch.text as object) });
+    // El contenido sólo se aplica si coincide con el tipo del pin (no se cambia el tipo).
+    if (patch.note && pin.type === 'note') {
+      pin.set('note', { markdown: sanitizeHtml(String((patch.note as { markdown: string }).markdown), sanitizeOpts) });
+    }
+    if (patch.text && pin.type === 'text') pin.set('text', { ...pin.text, ...(patch.text as object) });
+    if (patch.map && pin.type === 'map') pin.set('map', patch.map);
+    if (patch.topo && pin.type === 'topo') pin.set('topo', patch.topo);
+    if (patch.route && pin.type === 'route') pin.set('route', patch.route);
+    if (patch.photo && pin.type === 'photo') pin.set('photo', patch.photo);
+    if (patch.link && pin.type === 'link') pin.set('link', patch.link);
+    if (patch.list && pin.type === 'list') pin.set('list', patch.list);
     await pin.save();
     const serialized = serializeDoc<Pin>(pin);
     emitToTrip(String(pin.tripId), 'pin:update', serialized);

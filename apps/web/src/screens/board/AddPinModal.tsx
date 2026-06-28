@@ -3,12 +3,14 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import type {
   CreatePinRequest,
+  Pin,
   PinType,
   RouteProfile,
   RouteResult,
   TopoLayer,
   TopoMark,
   TopoMarkKind,
+  UpdatePinRequest,
 } from '@yourvivac/types';
 import { Field, Icon, Modal } from '@/ui';
 import { api } from '@/lib/api';
@@ -66,7 +68,18 @@ function randomLayout() {
   };
 }
 
-export function AddPinModal({ open, onClose, tripId }: { open: boolean; onClose: () => void; tripId: string }) {
+export function AddPinModal({
+  open,
+  onClose,
+  tripId,
+  editPin,
+}: {
+  open: boolean;
+  onClose: () => void;
+  tripId: string;
+  /** Si se pasa, la modal abre en modo edición de ese pin (no creación). */
+  editPin?: Pin | null;
+}) {
   const qc = useQueryClient();
   const [type, setType] = useState<PinType>('note');
   const [uploading, setUploading] = useState(false);
@@ -142,28 +155,88 @@ export function AddPinModal({ open, onClose, tripId }: { open: boolean; onClose:
     setRouteResult(null);
   }
 
+  // Modo edición: rellena el formulario con el pin al abrir; en creación, limpia.
+  useEffect(() => {
+    if (!open) return;
+    if (!editPin) {
+      reset();
+      setType('note');
+      return;
+    }
+    setType(editPin.type);
+    switch (editPin.type) {
+      case 'note':
+        setMarkdown(editPin.note.markdown);
+        break;
+      case 'text':
+        setTextBody(editPin.text.body);
+        setColor(editPin.text.color);
+        break;
+      case 'photo':
+        setPhotoMedia(
+          editPin.photo.media ? { url: editPin.photo.media.url, publicId: editPin.photo.media.publicId } : null,
+        );
+        break;
+      case 'link':
+        setUrl(editPin.link.url);
+        break;
+      case 'map':
+        setMapLabel(editPin.map.label);
+        setLat(String(editPin.map.coords.lat));
+        setLng(String(editPin.map.coords.lng));
+        setRoutePath(editPin.map.path ?? []);
+        break;
+      case 'topo':
+        setTopoLabel(editPin.topo.label);
+        setTopoCenter(editPin.topo.center);
+        setTopoLayer(editPin.topo.layer);
+        setTopoMarks(editPin.topo.marks ?? []);
+        break;
+      case 'route': {
+        const r = editPin.route;
+        setRouteName(r.name);
+        setRouteProfile(r.profile);
+        setRouteLayer(r.layer ?? 'mtn');
+        setRouteWaypoints(r.waypoints);
+        setRouteResult({
+          profile: r.profile,
+          waypoints: r.waypoints,
+          geometry: r.geometry,
+          distanceM: r.distanceM,
+          ascentM: r.ascentM,
+          descentM: r.descentM,
+          ...(r.durationMin != null ? { durationMin: r.durationMin } : {}),
+        });
+        break;
+      }
+      case 'list':
+        setGearListId(editPin.list.gearListId);
+        break;
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open, editPin]);
+
   const createMut = useMutation({
     mutationFn: () => {
-      const layout = randomLayout();
-      let payload: CreatePinRequest;
+      // Contenido del pin (sin type/layout): se usa tal cual para editar y se
+      // completa con type+layout para crear.
+      let content: UpdatePinRequest;
       switch (type) {
         case 'note':
-          payload = { type, layout, note: { markdown } };
+          content = { note: { markdown } };
           break;
         case 'text':
-          payload = { type, layout, text: { body: textBody, color } };
+          content = { text: { body: textBody, color } };
           break;
         case 'photo':
           if (!photoMedia) throw new Error('Sube una foto primero');
-          payload = { type, layout, photo: { media: { url: photoMedia.url, publicId: photoMedia.publicId } } };
+          content = { photo: { media: { url: photoMedia.url, publicId: photoMedia.publicId } } };
           break;
         case 'link':
-          payload = { type, layout, link: { url } };
+          content = { link: { url } };
           break;
         case 'map':
-          payload = {
-            type,
-            layout,
+          content = {
             map: {
               label: mapLabel,
               coords: { lat: Number(lat), lng: Number(lng) },
@@ -172,17 +245,13 @@ export function AddPinModal({ open, onClose, tripId }: { open: boolean; onClose:
           };
           break;
         case 'topo':
-          payload = {
-            type,
-            layout,
+          content = {
             topo: { label: topoLabel, center: topoCenter, zoom: 13, layer: topoLayer, marks: topoMarks },
           };
           break;
         case 'route':
           if (!routeResult) throw new Error('Calcula la ruta primero');
-          payload = {
-            type,
-            layout,
+          content = {
             route: {
               name: routeName,
               profile: routeResult.profile,
@@ -198,20 +267,21 @@ export function AddPinModal({ open, onClose, tripId }: { open: boolean; onClose:
           break;
         case 'list':
           if (!gearListId) throw new Error('Elige una lista');
-          payload = { type, layout, list: { gearListId } };
+          content = { list: { gearListId } };
           break;
         default:
           throw new Error('Tipo no soportado');
       }
-      return api.board.createPin(tripId, payload);
+      if (editPin) return api.board.updatePin(editPin.id, content);
+      return api.board.createPin(tripId, { type, layout: randomLayout(), ...content } as CreatePinRequest);
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['board', tripId] });
-      toast.success('Pin añadido');
+      toast.success(editPin ? 'Pin actualizado' : 'Pin añadido');
       reset();
       onClose();
     },
-    onError: (e) => toast.error(errMsg(e, 'No se pudo añadir el pin')),
+    onError: (e) => toast.error(errMsg(e, editPin ? 'No se pudo guardar' : 'No se pudo añadir el pin')),
   });
 
   async function onPickPhoto(e: React.ChangeEvent<HTMLInputElement>) {
@@ -230,14 +300,16 @@ export function AddPinModal({ open, onClose, tripId }: { open: boolean; onClose:
   }
 
   return (
-    <Modal open={open} onClose={onClose} title="Añadir pin">
-      <div className="row gap6 mb-4 flex-wrap">
-        {TYPES.map((t) => (
-          <button key={t.key} onClick={() => setType(t.key)} className={`chip cursor-pointer ${type === t.key ? 'chip--accent' : ''}`}>
-            <Icon name={t.icon} size={13} /> {t.label}
-          </button>
-        ))}
-      </div>
+    <Modal open={open} onClose={onClose} title={editPin ? 'Editar pin' : 'Añadir pin'}>
+      {!editPin && (
+        <div className="row gap6 mb-4 flex-wrap">
+          {TYPES.map((t) => (
+            <button key={t.key} onClick={() => setType(t.key)} className={`chip cursor-pointer ${type === t.key ? 'chip--accent' : ''}`}>
+              <Icon name={t.icon} size={13} /> {t.label}
+            </button>
+          ))}
+        </div>
+      )}
 
       <form
         className="stack gap12"
@@ -522,7 +594,13 @@ export function AddPinModal({ open, onClose, tripId }: { open: boolean; onClose:
         )}
 
         <button className="btn btn--block btn--lg" type="submit" disabled={createMut.isPending || uploading}>
-          {createMut.isPending ? 'Añadiendo…' : 'Añadir al tablero'}
+          {createMut.isPending
+            ? editPin
+              ? 'Guardando…'
+              : 'Añadiendo…'
+            : editPin
+              ? 'Guardar cambios'
+              : 'Añadir al tablero'}
         </button>
       </form>
     </Modal>

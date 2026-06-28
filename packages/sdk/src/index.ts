@@ -25,7 +25,6 @@ import type {
   Notification,
   Paginated,
   Pin,
-  PinLayoutInput,
   ProductSearchResponse,
   RegisterRequest,
   Report,
@@ -37,6 +36,7 @@ import type {
   Tip,
   Trip,
   UpdateGearItemRequest,
+  UpdatePinRequest,
   UpdateSettingsRequest,
   UpdateTripRequest,
   UpdateUserRequest,
@@ -139,10 +139,7 @@ export function createApiClient(options: ApiClientOptions) {
       get: (tripId: string) => data<Pin[]>(http.get(`/trips/${tripId}/board`)),
       createPin: (tripId: string, b: CreatePinRequest) =>
         data<Pin>(http.post(`/trips/${tripId}/pins`, b)),
-      updatePin: (
-        pinId: string,
-        b: { layout?: Partial<PinLayoutInput>; note?: { markdown: string }; text?: { body?: string; color?: string } },
-      ) => data<Pin>(http.patch(`/pins/${pinId}`, b)),
+      updatePin: (pinId: string, b: UpdatePinRequest) => data<Pin>(http.patch(`/pins/${pinId}`, b)),
       deletePin: (pinId: string) => data<void>(http.delete(`/pins/${pinId}`)),
       react: (pinId: string, emoji: string) =>
         data<Pin>(http.post(`/pins/${pinId}/reactions`, { emoji })),

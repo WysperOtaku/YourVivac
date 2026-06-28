@@ -14,6 +14,7 @@ interface PinViewProps {
   authorName?: string;
   canEdit?: boolean;
   onDelete?: () => void;
+  onEdit?: () => void;
   onReact?: (emoji: string) => void;
   meId?: string;
   style?: CSSProperties;
@@ -22,12 +23,17 @@ interface PinViewProps {
   flat?: boolean;
 }
 
-function Head({ icon, label, author, onDelete, canEdit }: { icon: 'note' | 'link' | 'list' | 'pin' | 'image' | 'mountain' | 'route'; label: string; author?: string; onDelete?: () => void; canEdit?: boolean }) {
+function Head({ icon, label, author, onDelete, onEdit, canEdit }: { icon: 'note' | 'link' | 'list' | 'pin' | 'image' | 'mountain' | 'route'; label: string; author?: string; onDelete?: () => void; onEdit?: () => void; canEdit?: boolean }) {
   return (
     <div className="pin__head">
       <Icon name={icon} size={13} /> {label}
       <span className="grow" />
       {author && <Avatar name={author} size={16} style={{ fontSize: 8 }} />}
+      {canEdit && onEdit && (
+        <button onClick={onEdit} aria-label="Editar pin" className="ml-1 text-ink-3 hover:text-accent">
+          <Icon name="edit" size={12} />
+        </button>
+      )}
       {canEdit && onDelete && (
         <button onClick={onDelete} aria-label="Borrar pin" className="ml-1 text-ink-3 hover:text-terra">
           <Icon name="x" size={13} />
@@ -68,7 +74,7 @@ function ExpandBtn({ onClick }: { onClick: () => void }) {
 }
 
 /** Renderiza un pin real según su tipo. El posicionamiento lo controla el tablero. */
-export function PinView({ pin, authorName, canEdit, onDelete, onReact, meId, style, className, flat }: PinViewProps) {
+export function PinView({ pin, authorName, canEdit, onDelete, onEdit, onReact, meId, style, className, flat }: PinViewProps) {
   const [expanded, setExpanded] = useState(false);
   const wrap = (inner: React.ReactNode, extra?: string) => (
     <div className={`pin ${extra ?? ''} ${className ?? ''}`} style={style}>
@@ -81,7 +87,7 @@ export function PinView({ pin, authorName, canEdit, onDelete, onReact, meId, sty
     case 'note':
       return wrap(
         <>
-          <Head icon="note" label="Nota · MD" author={authorName} onDelete={onDelete} canEdit={canEdit} />
+          <Head icon="note" label="Nota · MD" author={authorName} onDelete={onDelete} onEdit={onEdit} canEdit={canEdit} />
           <div className="pin__body note-md text-[13px]">
             <Markdown remarkPlugins={[remarkGfm]} rehypePlugins={[rehypeSanitize]}>
               {pin.note.markdown}
@@ -94,7 +100,12 @@ export function PinView({ pin, authorName, canEdit, onDelete, onReact, meId, sty
 
     case 'text':
       return wrap(
-        <div className="pin__body pt-3.5" style={{ background: pin.text.color, color: '#15200d', margin: -1, borderRadius: 10, padding: 14 }}>
+        <div className="pin__body pt-3.5 relative" style={{ background: pin.text.color, color: '#15200d', margin: -1, borderRadius: 10, padding: 14 }}>
+          {canEdit && onEdit && (
+            <button onClick={onEdit} aria-label="Editar pin" className="absolute right-2 top-2 text-black/45 hover:text-black">
+              <Icon name="edit" size={12} />
+            </button>
+          )}
           <p className="text-[13px]">{pin.text.body}</p>
           <Reactions pin={pin} meId={meId} onReact={onReact} />
         </div>,
@@ -114,6 +125,11 @@ export function PinView({ pin, authorName, canEdit, onDelete, onReact, meId, sty
             </div>
             <Reactions pin={pin} meId={meId} onReact={onReact} />
           </div>
+          {canEdit && onEdit && (
+            <button onClick={onEdit} aria-label="Editar pin" className="absolute right-10 top-2 grid h-6 w-6 place-items-center rounded-full bg-black/40 text-white">
+              <Icon name="edit" size={12} />
+            </button>
+          )}
           {canEdit && onDelete && (
             <button onClick={onDelete} aria-label="Borrar pin" className="absolute right-2 top-2 grid h-6 w-6 place-items-center rounded-full bg-black/40 text-white">
               <Icon name="x" size={13} />
@@ -126,7 +142,7 @@ export function PinView({ pin, authorName, canEdit, onDelete, onReact, meId, sty
     case 'link':
       return wrap(
         <>
-          <Head icon="link" label="Enlace" author={authorName} onDelete={onDelete} canEdit={canEdit} />
+          <Head icon="link" label="Enlace" author={authorName} onDelete={onDelete} onEdit={onEdit} canEdit={canEdit} />
           <a href={pin.link.url} target="_blank" rel="noreferrer" className="pin__body block">
             {pin.link.image && (
               <div className="mb-2 h-16 rounded-md bg-cover bg-center" style={{ backgroundImage: `url(${pin.link.image})` }} />
@@ -142,7 +158,7 @@ export function PinView({ pin, authorName, canEdit, onDelete, onReact, meId, sty
     case 'map':
       return wrap(
         <>
-          <Head icon="pin" label="Ubicación" author={authorName} onDelete={onDelete} canEdit={canEdit} />
+          <Head icon="pin" label="Ubicación" author={authorName} onDelete={onDelete} onEdit={onEdit} canEdit={canEdit} />
           <div className="pin__body">
             {isMapsConfigured ? (
               <TopoMap
@@ -176,7 +192,7 @@ export function PinView({ pin, authorName, canEdit, onDelete, onReact, meId, sty
       const t = pin.topo;
       return wrap(
         <>
-          <Head icon="mountain" label="Mapa topo" author={authorName} onDelete={onDelete} canEdit={canEdit} />
+          <Head icon="mountain" label="Mapa topo" author={authorName} onDelete={onDelete} onEdit={onEdit} canEdit={canEdit} />
           <div className="pin__body">
             <div
               className="relative h-44 cursor-zoom-in overflow-hidden rounded-md"
@@ -231,7 +247,7 @@ export function PinView({ pin, authorName, canEdit, onDelete, onReact, meId, sty
       );
       return wrap(
         <>
-          <Head icon="route" label="Ruta" author={authorName} onDelete={onDelete} canEdit={canEdit} />
+          <Head icon="route" label="Ruta" author={authorName} onDelete={onDelete} onEdit={onEdit} canEdit={canEdit} />
           <div className="pin__body">
             <div
               className="relative h-44 cursor-zoom-in overflow-hidden rounded-md"
@@ -266,7 +282,7 @@ export function PinView({ pin, authorName, canEdit, onDelete, onReact, meId, sty
     case 'list':
       return wrap(
         <>
-          <Head icon="list" label="Lista de equipo" author={authorName} onDelete={onDelete} canEdit={canEdit} />
+          <Head icon="list" label="Lista de equipo" author={authorName} onDelete={onDelete} onEdit={onEdit} canEdit={canEdit} />
           <div className="pin__body pt-1">
             <a href="/equipo" className="btn btn--ghost mt-1 w-full py-1.5 text-xs">
               <Icon name="list" size={14} /> Abrir lista
