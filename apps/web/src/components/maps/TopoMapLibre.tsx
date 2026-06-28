@@ -22,7 +22,7 @@ import { api } from '@/lib/api';
 import { cn } from '@/lib/cn';
 import { useUiStore } from '@/stores/uiStore';
 import type { LatLng } from '@/lib/maps';
-import { btnOverlayLayers, registerTopoIcons } from './btnLayers';
+import { btnOverlayLayers, adminLabelLayers, registerTopoIcons } from './btnLayers';
 import rawStyle from './yv-topo-style.json';
 import './topo-maplibre.css';
 
@@ -143,6 +143,8 @@ function buildTopoStyle(theme: ThemeName): StyleSpecification {
       'yv-dem': { type: 'raster-dem', tiles: [tileUrlAbs('mdt')], encoding: 'mapbox', tileSize: 256, maxzoom: 14 },
       // Base vectorial del IGN (BTN): de aquí salen las curvas de nivel (y, en F2, todo lo demás).
       'yv-btn': { type: 'vector', tiles: [tileUrlAbs('btn')], minzoom: 0, maxzoom: 14 },
+      // Unidades Administrativas del IGN: topónimos grandes (CCAA/provincia/municipio).
+      'yv-uadmin': { type: 'vector', tiles: [tileUrlAbs('uadmin')], minzoom: 0, maxzoom: 12 },
     },
     layers: [
       { id: 'yv-background', type: 'background', paint: { 'background-color': bg } },
@@ -160,6 +162,8 @@ function buildTopoStyle(theme: ThemeName): StyleSpecification {
       },
       // Calco vectorial del IGN: agua, viario, topónimos, cumbres, refugios (F2).
       ...btnOverlayLayers(theme),
+      // Topónimos administrativos (CCAA/provincia/municipio) a escalas lejanas.
+      ...adminLabelLayers(theme),
     ],
   } as unknown as StyleSpecification;
 }
@@ -264,7 +268,8 @@ export function TopoMapLibre({
 
     map.on('load', () => setReady(true));
     map.on('error', (e) => {
-      if (import.meta.env.DEV) console.debug('[TopoMapLibre] tile/style error', e?.error?.message);
+      // En dev mostramos los errores de estilo/tesela; en prod no hacen ruido.
+      if (import.meta.env.DEV) console.warn('[TopoMapLibre]', e?.error?.message);
     });
     map.on('click', (e) => {
       onClickRef.current?.({ lat: e.lngLat.lat, lng: e.lngLat.lng });

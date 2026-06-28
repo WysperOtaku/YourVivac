@@ -17,7 +17,7 @@ import { storage, type StoredBlob } from '../../lib/storage/index.js';
  *  Raster IGN (mtn/relieve/ortofoto/base) + DEM de elevación (dem, Terrarium) +
  *  base vectorial del IGN (btn, MVT). El `dem` alimenta el sombreado y las curvas
  *  de nivel que genera el cliente; `btn` es la base vectorial reestilable. */
-export type TileLayer = 'mtn' | 'relieve' | 'ortofoto' | 'base' | 'dem' | 'btn' | 'mdt';
+export type TileLayer = 'mtn' | 'relieve' | 'ortofoto' | 'base' | 'dem' | 'btn' | 'mdt' | 'uadmin';
 
 interface LayerConfig {
   /** wmts = KVP GetTile del IGN; xyz = plantilla directa {z}/{x}/{y}. */
@@ -86,6 +86,15 @@ const LAYERS: Record<TileLayer, LayerConfig> = {
     kind: 'xyz',
     base: 'https://vt-btn.idee.es/1.0.0/btn/tile',
     template: '/{z}/{y}/{x}.pbf',
+    format: 'application/x-protobuf',
+    ext: 'pbf',
+  },
+  // Unidades Administrativas del IGN (MVT): CCAA, provincias, municipios (topónimos
+  // grandes a escalas lejanas). Orden XYZ estándar {z}/{x}/{y}.
+  uadmin: {
+    kind: 'xyz',
+    base: 'https://vt-unidades-administrativas.ign.es/1.0.0/uadministrativa',
+    template: '/{z}/{x}/{y}.pbf',
     format: 'application/x-protobuf',
     ext: 'pbf',
   },
