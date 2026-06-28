@@ -396,10 +396,9 @@ export function TopoMapLibre({
       <div ref={containerRef} className="absolute inset-0" aria-label="Mapa topográfico" />
       {controls && (
         <>
-          {/* Selector de vista (Topo YV / IGN / Relieve / Satélite). Bajado para no
-              chocar con el tirador de arrastre (arriba-centro). */}
+          {/* Selector de vista (Topo YV / IGN / Relieve / Satélite), arriba-izquierda. */}
           <div
-            className="absolute left-2 top-11 z-10 row gap-1 rounded-control bg-bg-2/90 p-1 shadow-[inset_0_0_0_1px_var(--line)] backdrop-blur"
+            className="absolute left-2 top-2 z-10 row gap-1 rounded-control bg-bg-2/90 p-1 shadow-[inset_0_0_0_1px_var(--line)] backdrop-blur"
             onClick={(e) => e.stopPropagation()}
           >
             {VIEWS.map((v) => (

@@ -12,6 +12,8 @@ const SRC = 'yv-btn';
 interface Pal {
   water: string;
   waterFill: string;
+  building: string;
+  tree: string;
   carretera: string;
   camino: string;
   senda: string;
@@ -23,8 +25,8 @@ interface Pal {
 
 function pal(theme: ThemeName): Pal {
   return theme === 'dark'
-    ? { water: '#5a8a99', waterFill: '#2b424a', carretera: '#9a948a', camino: '#a98a5f', senda: '#c08a52', itinerario: '#7cc063', ink: '#dce6d6', halo: '#0e1411', peak: '#e0a06a' }
-    : { water: '#5f97a8', waterFill: '#bcd9e0', carretera: '#b8b2a6', camino: '#a98a5f', senda: '#b06a3a', itinerario: '#3f7a4d', ink: '#33402c', halo: '#f3efe2', peak: '#8a5a2e' };
+    ? { water: '#5a8a99', waterFill: '#2b424a', building: '#403a33', tree: '#4d6b40', carretera: '#9a948a', camino: '#a98a5f', senda: '#c08a52', itinerario: '#7cc063', ink: '#dce6d6', halo: '#0e1411', peak: '#e0a06a' }
+    : { water: '#5f97a8', waterFill: '#bcd9e0', building: '#caa884', tree: '#5e8a4a', carretera: '#b8b2a6', camino: '#a98a5f', senda: '#b06a3a', itinerario: '#3f7a4d', ink: '#33402c', halo: '#f3efe2', peak: '#8a5a2e' };
 }
 
 /** Capas BTN (orden: agua → viario → etiquetas/puntos) para fundir en el style Topo YV. */
@@ -34,7 +36,11 @@ export function btnOverlayLayers(theme: ThemeName): unknown[] {
     // --- agua ---
     { id: 'yv-embalse', type: 'fill', source: SRC, 'source-layer': 'btn0325s_embalse', paint: { 'fill-color': p.waterFill, 'fill-opacity': 0.75 } },
     { id: 'yv-laguna', type: 'fill', source: SRC, 'source-layer': 'btn0316s_laguna', paint: { 'fill-color': p.waterFill, 'fill-opacity': 0.75 } },
-    { id: 'yv-rio', type: 'line', source: SRC, 'source-layer': 'btn0302l_rio', minzoom: 10, paint: { 'line-color': p.water, 'line-width': ['interpolate', ['linear'], ['zoom'], 10, 0.5, 15, 1.8], 'line-opacity': 0.85 } },
+    // --- árboles (pista de zona boscosa; la BTN no trae masa forestal) ---
+    { id: 'yv-arbol', type: 'circle', source: SRC, 'source-layer': 'btn0404p_arbol', minzoom: 14, paint: { 'circle-radius': ['interpolate', ['linear'], ['zoom'], 14, 1, 17, 2.6], 'circle-color': p.tree, 'circle-opacity': 0.5 } },
+    // --- edificios ---
+    { id: 'yv-edificio', type: 'fill', source: SRC, 'source-layer': 'btn0507s_edific', minzoom: 13, paint: { 'fill-color': p.building, 'fill-opacity': 0.85 } },
+    { id: 'yv-rio', type: 'line', source: SRC, 'source-layer': 'btn0302l_rio', minzoom: 9, paint: { 'line-color': p.water, 'line-width': ['interpolate', ['linear'], ['zoom'], 9, 0.5, 15, 2], 'line-opacity': 0.85 } },
     // --- viario ---
     { id: 'yv-carretera', type: 'line', source: SRC, 'source-layer': 'btn0605l_carretera', minzoom: 11, paint: { 'line-color': p.carretera, 'line-width': ['interpolate', ['linear'], ['zoom'], 11, 0.6, 16, 2.6], 'line-opacity': 0.85 } },
     { id: 'yv-camino', type: 'line', source: SRC, 'source-layer': 'btn0623l_camino', minzoom: 12, paint: { 'line-color': p.camino, 'line-width': 0.9, 'line-opacity': 0.7, 'line-dasharray': [3, 2] } },
@@ -46,7 +52,7 @@ export function btnOverlayLayers(theme: ThemeName): unknown[] {
       type: 'symbol',
       source: SRC,
       'source-layer': 'btn0502s_ent_pob_pob',
-      minzoom: 10,
+      minzoom: 9,
       layout: { 'text-field': ['get', 'nombre'], 'text-font': ['Noto Sans Regular'], 'text-size': ['interpolate', ['linear'], ['zoom'], 10, 10, 15, 14] },
       paint: { 'text-color': p.ink, 'text-halo-color': p.halo, 'text-halo-width': 1.5 },
     },

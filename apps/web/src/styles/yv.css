@@ -330,10 +330,11 @@
   animation: pin-drop 0.3s ease;
 }
 
-/* Tirador para mover los pines de mapa (el mapa en sí es interactivo: pan con la mano). */
+/* Tirador para mover los pines de mapa (el mapa en sí es interactivo: pan con la mano).
+   Abajo-centro, para no chocar con el selector de vista (arriba). */
 .pin-drag-handle {
   position: absolute;
-  top: 6px;
+  bottom: 7px;
   left: 50%;
   transform: translateX(-50%);
   z-index: 20;
