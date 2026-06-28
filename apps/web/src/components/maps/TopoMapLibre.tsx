@@ -6,7 +6,6 @@ import maplibregl, {
   type LineLayerSpecification,
 } from 'maplibre-gl';
 import 'maplibre-gl/dist/maplibre-gl.css';
-import mlcontour from 'maplibre-contour';
 import {
   Mountain,
   Tent,
@@ -15,21 +14,25 @@ import {
   Car,
   Milestone,
   MapPin,
+  Crosshair,
   type LucideIcon,
 } from 'lucide-react';
 import type { ThemeName, TopoMark, TopoMarkKind } from '@yourvivac/types';
 import { api } from '@/lib/api';
+import { cn } from '@/lib/cn';
 import { useUiStore } from '@/stores/uiStore';
 import type { LatLng } from '@/lib/maps';
 import rawStyle from './yv-topo-style.json';
 import './topo-maplibre.css';
 
+export type TopoView = 'base' | 'mtn' | 'relieve' | 'ortofoto';
+
 export interface TopoMapLibreProps {
-  /** Centro del mapa. */
+  /** Centro del mapa = localización del pin (lleva marcador prominente). */
   center: LatLng;
   zoom?: number;
-  /** Capa base IGN. */
-  layer?: 'base' | 'mtn' | 'relieve' | 'ortofoto';
+  /** Vista/capa base inicial. */
+  layer?: TopoView;
   /** Marcas/iconos YourVivac (cumbre, refugio, fuente, vivac…). */
   marks?: TopoMark[];
   /** Polilínea de ruta (pin `route`). */
@@ -37,8 +40,12 @@ export interface TopoMapLibreProps {
   className?: string;
   /** Mapa interactivo (true) o solo lectura compacto (false). */
   interactive?: boolean;
+  /** Muestra controles in-map (selector de vista + recentrar). */
+  controls?: boolean;
   /** Click en el mapa → coordenadas (para colocar marcas o waypoints). */
   onClick?: (coords: LatLng) => void;
+  /** Cambio de vista (para persistir la elección si interesa). */
+  onViewChange?: (view: TopoView) => void;
 }
 
 /** Cada tipo de marca YourVivac se pinta con un icono de lucide dentro de un pin gota. */
@@ -52,6 +59,14 @@ const KIND_ICON: Record<TopoMarkKind, LucideIcon> = {
   punto: MapPin,
 };
 
+/** Vistas del mapa: «Topo YV» (nuestro) + raster IGN. Espejo entre IGN y el nuestro. */
+const VIEWS: { key: TopoView; short: string; label: string }[] = [
+  { key: 'base', short: 'Topo', label: 'Topo YV' },
+  { key: 'mtn', short: 'IGN', label: 'Mapa IGN' },
+  { key: 'relieve', short: 'Relieve', label: 'Relieve' },
+  { key: 'ortofoto', short: 'Sat', label: 'Satélite' },
+];
+
 const ROUTE_SOURCE = 'yv-route';
 const ROUTE_HALO_LAYER = 'yv-route-halo';
 const ROUTE_LINE_LAYER = 'yv-route-line';
@@ -62,21 +77,14 @@ function readToken(el: HTMLElement, name: string, fallback: string): string {
   return v || fallback;
 }
 
-/**
- * DEM de elevación (Terrarium) compartido entre el sombreado y las curvas de
- * nivel. Singleton: el protocolo de maplibre-contour se registra una sola vez.
- */
-let demSource: InstanceType<typeof mlcontour.DemSource> | null = null;
-function getDemSource(): InstanceType<typeof mlcontour.DemSource> {
-  if (demSource) return demSource;
-  const tpl = api.maps.tileUrl('dem'); // `${base}/maps/tiles/dem/{z}/{x}/{y}`
-  const url = tpl.startsWith('http') ? tpl : `${window.location.origin}${tpl}`;
-  demSource = new mlcontour.DemSource({ url, encoding: 'terrarium', maxzoom: 13, worker: true });
-  demSource.setupMaplibre(maplibregl);
-  return demSource;
+/** Rampa hipsométrica (altura→color) según el tema. */
+function topoRamp(theme: ThemeName): (number | string)[] {
+  return theme === 'dark'
+    ? [0, '#16221b', 200, '#1c2a20', 500, '#243528', 900, '#2f3d2b', 1400, '#3e4633', 1900, '#534c39', 2400, '#6e6450', 2900, '#8f8771', 3400, '#b6ad96']
+    : [0, '#cfe0b4', 200, '#c2d6a0', 500, '#cbd79c', 900, '#d8cf9a', 1400, '#d2bd84', 1900, '#c2a06a', 2400, '#ad8a64', 2900, '#c2b29a', 3400, '#ece5d6'];
 }
 
-/** Style raster (capas IGN mtn/relieve/ortofoto): tesela IGN reestilada sutilmente. */
+/** Style raster (vistas IGN mtn/relieve/ortofoto): tesela IGN reestilada sutilmente. */
 function buildRasterStyle(layer: string, host: HTMLElement): StyleSpecification {
   // structuredClone evita mutar el JSON importado (compartido entre instancias).
   const style = structuredClone(rawStyle) as unknown as StyleSpecification;
@@ -91,134 +99,48 @@ function buildRasterStyle(layer: string, host: HTMLElement): StyleSpecification 
 }
 
 /**
- * Style «Topo YV»: NUESTRO mapa topográfico. Sombreado de relieve + curvas de
- * nivel generadas en el cliente desde el DEM (maplibre-contour), dibujadas con
- * la estética YourVivac. Vectorial → nítido y legible a cualquier zoom (arregla
- * el UX del zoom del raster). El intervalo de curvas se adapta por nivel de zoom.
- */
-/** Paleta del topo según el tema de la app (dibujo ilustrado, no relieve fotográfico). */
-function topoPalette(theme: ThemeName) {
-  return theme === 'dark'
-    ? {
-        bg: '#131a16', // superficie oscura YourVivac
-        minor: '#627d57',
-        major: '#8fbb73',
-        label: '#a8ce8f',
-        halo: '#0e1411',
-        hsShadow: '#0a0f0c',
-        hsHighlight: '#222e26',
-        hsAccent: '#2b3a2d',
-      }
-    : {
-        bg: '#efe8d8', // papel cálido claro
-        minor: '#b49b72',
-        major: '#7f5f36',
-        label: '#6e5230',
-        halo: '#efe8d8',
-        hsShadow: '#b8a988',
-        hsHighlight: '#fffdf6',
-        hsAccent: '#cdbf9d',
-      };
-}
-
-/**
- * Style «Topo YV»: NUESTRO mapa topográfico como DIBUJO vectorial (no relieve
- * fotográfico). Curvas de nivel protagonistas + sombreado muy sutil, con paleta
- * que sigue el tema de la app (oscuro/claro). Generado en cliente desde el DEM.
+ * Style «Topo YV»: NUESTRO mapa topográfico. Terreno COLOREADO por altura
+ * (color-relief desde el MDT del IGN) + sombreado sutil + curvas de nivel
+ * vectoriales del IGN (BTN). Paleta según el tema de la app (oscuro/claro).
  */
 function buildTopoStyle(theme: ThemeName): StyleSpecification {
-  const dem = getDemSource();
-  const P = topoPalette(theme);
+  const dark = theme === 'dark';
+  const colorRelief: unknown[] = ['interpolate', ['linear'], ['elevation']];
+  for (const v of topoRamp(theme)) colorRelief.push(v);
+  const bg = dark ? '#10180f' : '#dfe6c8';
+  const contour = dark ? '#6f6a55' : '#9a7a4e';
+
   return {
     version: 8,
     name: 'YourVivac Topo',
     glyphs: 'https://demotiles.maplibre.org/font/{fontstack}/{range}.pbf',
     sources: {
-      'yv-dem': {
-        type: 'raster-dem',
-        tiles: [dem.sharedDemProtocolUrl],
-        encoding: 'terrarium',
-        tileSize: 256,
-        maxzoom: 13,
-      },
-      'yv-contours': {
-        type: 'vector',
-        tiles: [
-          dem.contourProtocolUrl({
-            multiplier: 1,
-            thresholds: {
-              10: [200, 1000],
-              11: [100, 500],
-              12: [100, 500],
-              13: [50, 250],
-              14: [20, 100],
-              15: [10, 50],
-            },
-            elevationKey: 'ele',
-            levelKey: 'level',
-            contourLayer: 'contours',
-            overzoom: 1,
-          }),
-        ],
-        maxzoom: 16,
-      },
+      // MDT del IGN (encoding mapbox): alimenta color-relief y hillshade.
+      'yv-dem': { type: 'raster-dem', tiles: [api.maps.tileUrl('mdt')], encoding: 'mapbox', tileSize: 256, maxzoom: 14 },
+      // Base vectorial del IGN (BTN): de aquí salen las curvas de nivel (y, en F2, todo lo demás).
+      'yv-btn': { type: 'vector', tiles: [api.maps.tileUrl('btn')], maxzoom: 14 },
     },
     layers: [
-      { id: 'yv-background', type: 'background', paint: { 'background-color': P.bg } },
+      { id: 'yv-background', type: 'background', paint: { 'background-color': bg } },
+      // Terreno coloreado por altura (hipsométrico).
+      { id: 'yv-color-relief', type: 'color-relief', source: 'yv-dem', paint: { 'color-relief-color': colorRelief } },
+      // Sombreado de relieve sutil (profundidad, sin dominar).
+      { id: 'yv-hillshade', type: 'hillshade', source: 'yv-dem', paint: { 'hillshade-exaggeration': 0.14, 'hillshade-method': 'igor' } },
+      // Curvas de nivel del IGN (BTN).
       {
-        // Sombreado MUY sutil (un lavado de profundidad, no «papel arrugado»).
-        id: 'yv-hillshade',
-        type: 'hillshade',
-        source: 'yv-dem',
-        paint: {
-          'hillshade-exaggeration': 0.16,
-          'hillshade-shadow-color': P.hsShadow,
-          'hillshade-accent-color': P.hsAccent,
-          'hillshade-highlight-color': P.hsHighlight,
-        },
-      },
-      {
-        id: 'yv-contour-minor',
+        id: 'yv-contour',
         type: 'line',
-        source: 'yv-contours',
-        'source-layer': 'contours',
-        filter: ['!=', ['get', 'level'], 1],
-        paint: { 'line-color': P.minor, 'line-width': 0.7, 'line-opacity': 0.55 },
-      },
-      {
-        id: 'yv-contour-major',
-        type: 'line',
-        source: 'yv-contours',
-        'source-layer': 'contours',
-        filter: ['==', ['get', 'level'], 1],
-        paint: { 'line-color': P.major, 'line-width': 1.4, 'line-opacity': 0.95 },
-      },
-      {
-        id: 'yv-contour-label',
-        type: 'symbol',
-        source: 'yv-contours',
-        'source-layer': 'contours',
-        filter: ['==', ['get', 'level'], 1],
-        layout: {
-          'symbol-placement': 'line',
-          'text-field': ['concat', ['number-format', ['get', 'ele'], {}], ' m'],
-          'text-size': 10,
-          'text-font': ['Noto Sans Regular'],
-          'symbol-spacing': 220,
-        },
-        paint: {
-          'text-color': P.label,
-          'text-halo-color': P.halo,
-          'text-halo-width': 1.4,
-        },
+        source: 'yv-btn',
+        'source-layer': 'btn0201l_cur_niv',
+        paint: { 'line-color': contour, 'line-width': 0.6, 'line-opacity': dark ? 0.4 : 0.5 },
       },
     ],
-  } as StyleSpecification;
+  } as unknown as StyleSpecification;
 }
 
-/** Devuelve el style según la capa: «base» = Topo YV (dibujo + curvas); resto = raster IGN. */
-function buildStyle(layer: string, host: HTMLElement, theme: ThemeName): StyleSpecification {
-  return layer === 'base' ? buildTopoStyle(theme) : buildRasterStyle(layer, host);
+/** Devuelve el style según la vista: «base» = Topo YV (color-relief); resto = raster IGN. */
+function buildStyle(view: string, host: HTMLElement, theme: ThemeName): StyleSpecification {
+  return view === 'base' ? buildTopoStyle(theme) : buildRasterStyle(view, host);
 }
 
 /** Crea el elemento HTML de un pin de marca con iconografía YourVivac. */
@@ -241,6 +163,13 @@ function createMarkElement(mark: TopoMark): { el: HTMLDivElement; root: Root } {
   return { el, root };
 }
 
+/** Marcador prominente de la localización del pin (centro). */
+function createCenterElement(): HTMLDivElement {
+  const el = document.createElement('div');
+  el.className = 'yv-topo-loc';
+  return el;
+}
+
 /** Punto de inicio/fin de ruta diferenciado por color. */
 function createDotElement(variant: 'start' | 'end'): HTMLDivElement {
   const el = document.createElement('div');
@@ -249,46 +178,54 @@ function createDotElement(variant: 'start' | 'end'): HTMLDivElement {
 }
 
 /**
- * Mapa topográfico IGN renderizado con MapLibre GL y la estética YourVivac.
- * Sin clave Google: las teselas (`api.maps.tileUrl`) las sirve/cachea la API.
- * Reutilizado por el tablero (pines `topo`/`route`) y la creación de marcas.
+ * Mini-visor topográfico (MapLibre GL) con la estética YourVivac: terreno
+ * coloreado por altura, curvas del IGN y marcas propias. Selector de vista
+ * (Topo YV / IGN / Relieve / Satélite) y recentrado al marcador. Las teselas
+ * (`api.maps.tileUrl`) las sirve/cachea la API.
  */
 export function TopoMapLibre({
   center,
   zoom = 13,
-  layer = 'mtn',
+  layer = 'base',
   marks,
   route,
   className,
   interactive = false,
+  controls = false,
   onClick,
+  onViewChange,
 }: TopoMapLibreProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<maplibregl.Map | null>(null);
   const markersRef = useRef<maplibregl.Marker[]>([]);
   const rootsRef = useRef<Root[]>([]);
-  // onClick puede cambiar de identidad entre renders sin recrear el mapa.
   const onClickRef = useRef(onClick);
   onClickRef.current = onClick;
   const [ready, setReady] = useState(false);
+  const [view, setView] = useState<TopoView>(layer);
   // Tema de la app: el style «Topo YV» usa paleta oscura/clara y se reconstruye al cambiar.
   const theme = useUiStore((s) => s.theme);
+  const hasRoute = (route?.length ?? 0) > 0;
 
-  // --- Crear / destruir el mapa (se recrea solo al cambiar capa o modo) ---
+  // Si la vista inicial cambia desde fuera (prop), sincroniza.
+  useEffect(() => setView(layer), [layer]);
+
+  // --- Crear / destruir el mapa (se recrea al cambiar vista, modo o tema) ---
   useEffect(() => {
     const host = containerRef.current;
     if (!host) return;
 
     const map = new maplibregl.Map({
       container: host,
-      style: buildStyle(layer, host, theme),
+      style: buildStyle(view, host, theme),
       center: [center.lng, center.lat],
       zoom,
       interactive,
       attributionControl: false,
-      // sin logo/ruido en lectura; sólo arrastre/zoom cuando interactive
       dragRotate: false,
       pitchWithRotate: false,
+      // Carga vecinos al hacer zoom (sectores de alrededor) más fluido.
+      maxTileCacheSize: 512,
     });
     mapRef.current = map;
 
@@ -298,7 +235,6 @@ export function TopoMapLibre({
     }
 
     map.on('load', () => setReady(true));
-    // Teselas que fallan (p. ej. backend stubeado en el harness): no romper el render.
     map.on('error', (e) => {
       if (import.meta.env.DEV) console.debug('[TopoMapLibre] tile/style error', e?.error?.message);
     });
@@ -310,18 +246,16 @@ export function TopoMapLibre({
       setReady(false);
       markersRef.current.forEach((m) => m.remove());
       markersRef.current = [];
-      // desmontar los roots de React de los pines tras el ciclo actual
       const roots = rootsRef.current;
       rootsRef.current = [];
       queueMicrotask(() => roots.forEach((r) => r.unmount()));
       map.remove();
       mapRef.current = null;
     };
-    // center/zoom iniciales se aplican aquí; sus cambios posteriores van en otro efecto.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [layer, interactive, theme]);
+  }, [view, interactive, theme]);
 
-  // --- Marcas (Markers con pin YourVivac) ---
+  // --- Marcas (Markers con pin YourVivac) + marcador central de localización ---
   useEffect(() => {
     const map = mapRef.current;
     if (!map || !ready) return;
@@ -332,6 +266,14 @@ export function TopoMapLibre({
     rootsRef.current = [];
     queueMicrotask(() => oldRoots.forEach((r) => r.unmount()));
 
+    // Marcador prominente de la localización del pin (solo si no es una ruta).
+    if (!hasRoute) {
+      const loc = new maplibregl.Marker({ element: createCenterElement(), anchor: 'center' })
+        .setLngLat([center.lng, center.lat])
+        .addTo(map);
+      markersRef.current.push(loc);
+    }
+
     for (const mark of marks ?? []) {
       const { el, root } = createMarkElement(mark);
       rootsRef.current.push(root);
@@ -340,7 +282,7 @@ export function TopoMapLibre({
         .addTo(map);
       markersRef.current.push(marker);
     }
-  }, [ready, marks]);
+  }, [ready, marks, center.lat, center.lng, hasRoute]);
 
   // --- Ruta (línea --accent con halo) + puntos inicio/fin ---
   useEffect(() => {
@@ -366,27 +308,17 @@ export function TopoMapLibre({
         type: 'line',
         source: ROUTE_SOURCE,
         layout: { 'line-cap': 'round', 'line-join': 'round' },
-        paint: {
-          'line-color': bg,
-          'line-width': 9,
-          'line-opacity': 0.45,
-          'line-blur': 2,
-        },
+        paint: { 'line-color': bg, 'line-width': 9, 'line-opacity': 0.45, 'line-blur': 2 },
       } satisfies LineLayerSpecification);
       map.addLayer({
         id: ROUTE_LINE_LAYER,
         type: 'line',
         source: ROUTE_SOURCE,
         layout: { 'line-cap': 'round', 'line-join': 'round' },
-        paint: {
-          'line-color': accent,
-          'line-width': 4,
-          'line-opacity': 0.95,
-        },
+        paint: { 'line-color': accent, 'line-width': 4, 'line-opacity': 0.95 },
       } satisfies LineLayerSpecification);
     }
 
-    // puntos inicio/fin: se gestionan junto a las marcas vía markersRef
     const startEnd: maplibregl.Marker[] = [];
     const first = route?.[0];
     if (first) {
@@ -409,7 +341,7 @@ export function TopoMapLibre({
     };
   }, [ready, route]);
 
-  // --- Encuadre: fitBounds a ruta/marcas, o jumpTo al centro ---
+  // --- Encuadre: orientado al marcador (centro) + marcas/ruta ---
   useEffect(() => {
     const map = mapRef.current;
     if (!map || !ready) return;
@@ -417,23 +349,68 @@ export function TopoMapLibre({
     const points: [number, number][] = [];
     for (const p of route ?? []) points.push([p.lng, p.lat]);
     for (const m of marks ?? []) points.push([m.coords.lng, m.coords.lat]);
+    // El marcador de localización siempre entra en el encuadre.
+    if (!hasRoute) points.push([center.lng, center.lat]);
 
-    if (points.length === 0) {
+    if (points.length <= 1) {
       map.jumpTo({ center: [center.lng, center.lat], zoom });
       return;
     }
-    const first = points[0];
-    if (!first) return;
-    if (points.length === 1) {
-      map.jumpTo({ center: first, zoom });
-      return;
-    }
-    const bounds = points.reduce(
-      (b, p) => b.extend(p),
-      new maplibregl.LngLatBounds(first, first),
-    );
-    map.fitBounds(bounds, { padding: interactive ? 56 : 28, maxZoom: 15, duration: 0 });
-  }, [ready, route, marks, center, zoom, interactive]);
+    const first = points[0]!;
+    const bounds = points.reduce((b, p) => b.extend(p), new maplibregl.LngLatBounds(first, first));
+    map.fitBounds(bounds, { padding: interactive ? 56 : 30, maxZoom: 15, duration: 0 });
+  }, [ready, route, marks, center.lat, center.lng, zoom, interactive, hasRoute]);
 
-  return <div ref={containerRef} className={className} aria-label="Mapa topográfico IGN" />;
+  function changeView(v: TopoView) {
+    setView(v);
+    onViewChange?.(v);
+  }
+  function recenter() {
+    mapRef.current?.flyTo({ center: [center.lng, center.lat], zoom: zoom ?? 13, duration: 500 });
+  }
+
+  return (
+    <div className={cn('relative overflow-hidden', className)}>
+      <div ref={containerRef} className="absolute inset-0" aria-label="Mapa topográfico" />
+      {controls && (
+        <>
+          {/* Selector de vista (Topo YV / IGN / Relieve / Satélite) */}
+          <div
+            className="absolute left-2 top-2 z-10 row gap-1 rounded-control bg-bg-2/90 p-1 shadow-[inset_0_0_0_1px_var(--line)] backdrop-blur"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {VIEWS.map((v) => (
+              <button
+                key={v.key}
+                type="button"
+                title={v.label}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  changeView(v.key);
+                }}
+                className={cn(
+                  'mono rounded-[7px] px-2 py-1 text-[11px]',
+                  view === v.key ? 'bg-accent text-accent-ink' : 'text-ink-3 hover:text-ink',
+                )}
+              >
+                {v.short}
+              </button>
+            ))}
+          </div>
+          {/* Recentrar al marcador */}
+          <button
+            type="button"
+            title="Centrar en el marcador"
+            onClick={(e) => {
+              e.stopPropagation();
+              recenter();
+            }}
+            className="absolute bottom-2 right-2 z-10 grid h-8 w-8 place-items-center rounded-full bg-bg-2/90 text-ink-2 shadow-[inset_0_0_0_1px_var(--line)] backdrop-blur hover:text-accent"
+          >
+            <Crosshair size={16} aria-hidden />
+          </button>
+        </>
+      )}
+    </div>
+  );
 }

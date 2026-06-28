@@ -73,6 +73,18 @@
   transform: translateX(-50%) translateY(0);
 }
 
+/* marcador prominente de la localización del pin (centro) */
+.yv-topo-loc {
+  width: 18px;
+  height: 18px;
+  border-radius: 999px;
+  background: var(--accent);
+  border: 2.5px solid var(--bg);
+  box-shadow:
+    0 0 0 1.5px var(--accent),
+    0 2px 6px rgba(0, 0, 0, 0.4);
+}
+
 /* punto de inicio/fin de ruta */
 .yv-topo-dot {
   width: 16px;

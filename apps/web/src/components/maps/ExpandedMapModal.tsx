@@ -60,6 +60,7 @@ export function ExpandedMapModal({ open, onClose, title, center, zoom, layer, ma
             marks={marks}
             route={route}
             interactive
+            controls
             className="absolute inset-0"
           />
         </div>

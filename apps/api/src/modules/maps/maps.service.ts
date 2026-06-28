@@ -17,7 +17,7 @@ import { storage, type StoredBlob } from '../../lib/storage/index.js';
  *  Raster IGN (mtn/relieve/ortofoto/base) + DEM de elevación (dem, Terrarium) +
  *  base vectorial del IGN (btn, MVT). El `dem` alimenta el sombreado y las curvas
  *  de nivel que genera el cliente; `btn` es la base vectorial reestilable. */
-export type TileLayer = 'mtn' | 'relieve' | 'ortofoto' | 'base' | 'dem' | 'btn';
+export type TileLayer = 'mtn' | 'relieve' | 'ortofoto' | 'base' | 'dem' | 'btn' | 'mdt';
 
 interface LayerConfig {
   /** wmts = KVP GetTile del IGN; xyz = plantilla directa {z}/{x}/{y}. */
@@ -64,8 +64,16 @@ const LAYERS: Record<TileLayer, LayerConfig> = {
     format: 'image/jpeg',
     ext: 'jpg',
   },
-  // DEM de elevación (Terrarium de AWS, gratis y global). Lo consume maplibre-contour
-  // en el cliente para el sombreado de relieve y las curvas de nivel.
+  // DEM del IGN (MDT) en formato raster-dem, encoding MAPBOX. Lo consume MapLibre
+  // (color-relief + hillshade) para colorear el terreno por altura y sombrearlo.
+  mdt: {
+    kind: 'xyz',
+    base: 'https://xyz-mdt.idee.es/1.0.0/raster-dem',
+    template: '/{z}/{x}/{y}.png',
+    format: 'image/png',
+    ext: 'png',
+  },
+  // DEM de elevación (Terrarium de AWS, gratis y global). Fallback del MDT del IGN.
   dem: {
     kind: 'xyz',
     base: 'https://s3.amazonaws.com/elevation-tiles-prod/terrarium',

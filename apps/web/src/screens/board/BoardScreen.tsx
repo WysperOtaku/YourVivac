@@ -352,11 +352,13 @@ export function BoardScreen() {
 /** Pin libre arrastrable (mural escritorio) con animación orgánica y sin teletransporte. */
 function FreePin({ pin, dropped, children }: { pin: Pin; dropped: boolean; children: React.ReactNode }) {
   const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({ id: pin.id });
+  // Los pines de mapa/ruta son mini-visores: más anchos para que el mapa luzca.
+  const wide = pin.type === 'topo' || pin.type === 'route';
   const style: CSSProperties = {
     position: 'absolute',
     left: pin.layout.x,
     top: pin.layout.y,
-    width: pin.layout.w,
+    width: wide ? Math.max(pin.layout.w, 340) : pin.layout.w,
     zIndex: isDragging ? 9999 : pin.layout.z,
     rotate: `${pin.layout.rotation}deg`,
     translate: transform ? `${transform.x}px ${transform.y}px` : undefined,
@@ -379,6 +381,8 @@ function FreePin({ pin, dropped, children }: { pin: Pin; dropped: boolean; child
 /** Pin intercambiable en el masonry del mural (móvil). */
 function SwapPin({ pin, children }: { pin: Pin; children: React.ReactNode }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: pin.id });
+  // Los mini-visores (mapa/ruta) ocupan las dos columnas del masonry en móvil.
+  const wide = pin.type === 'topo' || pin.type === 'route';
   const style: CSSProperties = {
     transform: CSS.Transform.toString(transform),
     transition,
@@ -389,7 +393,7 @@ function SwapPin({ pin, children }: { pin: Pin; children: React.ReactNode }) {
     <div
       ref={setNodeRef}
       style={style}
-      className="pin-postit mb-3 break-inside-avoid [&>.pin]:static [&>.pin]:w-full"
+      className={`pin-postit mb-3 break-inside-avoid [&>.pin]:static [&>.pin]:w-full ${wide ? '[column-span:all]' : ''}`}
       {...attributes}
       {...listeners}
     >

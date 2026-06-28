@@ -1,4 +1,4 @@
-import { useState, type CSSProperties } from 'react';
+import { useState, type CSSProperties, type ReactNode } from 'react';
 import Markdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import rehypeSanitize from 'rehype-sanitize';
@@ -57,19 +57,56 @@ function Reactions({ pin, meId, onReact }: { pin: Pin; meId?: string; onReact?: 
   );
 }
 
-/** Botón flotante para ampliar el mapa de un pin a pantalla completa. */
-function ExpandBtn({ onClick }: { onClick: () => void }) {
+/** Botoncito de acción flotante sobre el mapa de un pin. */
+function MapBtn({ icon, label, onClick }: { icon: 'edit' | 'x' | 'expand'; label: string; onClick: () => void }) {
   return (
     <button
+      type="button"
+      aria-label={label}
       onClick={(e) => {
         e.stopPropagation();
         onClick();
       }}
-      aria-label="Ampliar mapa"
-      className="absolute right-1.5 top-1.5 z-10 grid h-7 w-7 place-items-center rounded-md bg-bg/85 text-ink-2 shadow-[inset_0_0_0_1px_var(--line)] hover:text-accent"
+      className="grid h-7 w-7 place-items-center rounded-full bg-black/45 text-white hover:bg-black/65"
     >
-      <Icon name="expand" size={14} />
+      <Icon name={icon} size={13} />
     </button>
+  );
+}
+
+/** Chrome mínimo sobre el mapa de un pin: acciones (editar/borrar/ampliar) arriba
+ *  y etiqueta (+ chips opcionales) en un degradado abajo. Deja el mapa de protagonista. */
+function PinMapOverlay({
+  label,
+  icon,
+  canEdit,
+  onEdit,
+  onDelete,
+  onExpand,
+  children,
+}: {
+  label: string;
+  icon: 'mountain' | 'route';
+  canEdit?: boolean;
+  onEdit?: () => void;
+  onDelete?: () => void;
+  onExpand: () => void;
+  children?: ReactNode;
+}) {
+  return (
+    <>
+      <div className="absolute right-1.5 top-1.5 z-10 row gap6" onClick={(e) => e.stopPropagation()}>
+        {canEdit && onEdit && <MapBtn icon="edit" label="Editar pin" onClick={onEdit} />}
+        {canEdit && onDelete && <MapBtn icon="x" label="Borrar pin" onClick={onDelete} />}
+        <MapBtn icon="expand" label="Ampliar mapa" onClick={onExpand} />
+      </div>
+      <div className="pointer-events-none absolute inset-x-0 bottom-0 z-[5] bg-gradient-to-t from-black/65 via-black/25 to-transparent px-2.5 pb-2 pt-8">
+        <div className="row gap6 font-display text-[13.5px] text-white">
+          <Icon name={icon} size={13} /> <span className="truncate">{label}</span>
+        </div>
+        {children}
+      </div>
+    </>
   );
 }
 
@@ -192,24 +229,24 @@ export function PinView({ pin, authorName, canEdit, onDelete, onEdit, onReact, m
       const t = pin.topo;
       return wrap(
         <>
-          <Head icon="mountain" label="Mapa topo" author={authorName} onDelete={onDelete} onEdit={onEdit} canEdit={canEdit} />
-          <div className="pin__body">
-            <div
-              className="relative h-44 cursor-zoom-in overflow-hidden rounded-md"
-              onClick={() => setExpanded(true)}
-            >
-              <TopoMapLibre
-                center={t.center}
-                zoom={t.zoom}
-                layer={t.layer}
-                marks={t.marks}
-                interactive={false}
-                className="absolute inset-0"
-              />
-              <ExpandBtn onClick={() => setExpanded(true)} />
-            </div>
-            <div className="mt-1.5 font-display text-sm">{t.label}</div>
-            <Reactions pin={pin} meId={meId} onReact={onReact} />
+          <div className="relative h-56 cursor-zoom-in" onClick={() => setExpanded(true)}>
+            <TopoMapLibre
+              center={t.center}
+              zoom={t.zoom}
+              layer={t.layer}
+              marks={t.marks}
+              interactive={false}
+              controls
+              className="absolute inset-0"
+            />
+            <PinMapOverlay
+              label={t.label}
+              icon="mountain"
+              canEdit={canEdit}
+              onEdit={onEdit}
+              onDelete={onDelete}
+              onExpand={() => setExpanded(true)}
+            />
           </div>
           <ExpandedMapModal
             open={expanded}
@@ -221,6 +258,7 @@ export function PinView({ pin, authorName, canEdit, onDelete, onEdit, onReact, m
             marks={t.marks}
           />
         </>,
+        'relative overflow-hidden',
       );
     }
 
@@ -232,8 +270,22 @@ export function PinView({ pin, authorName, canEdit, onDelete, onEdit, onReact, m
       const marks: TopoMark[] = [];
       if (start) marks.push({ coords: start, kind: 'punto', label: 'Inicio' });
       if (end) marks.push({ coords: end, kind: 'punto', label: 'Fin' });
-      const stats = (
-        <div className="row gap6 mt-1 flex-wrap">
+      // Stats sobre el mapa (overlay claro) y como chips en el pie del visor ampliado.
+      const statsLine = (
+        <div className="row gap10 mt-0.5 mono text-[11px] text-white/90">
+          <span className="row gap4">
+            <Icon name="ruler" size={11} /> {(r.distanceM / 1000).toFixed(1)} km
+          </span>
+          <span className="row gap4">
+            <Icon name="elev" size={11} /> +{Math.round(r.ascentM)}
+          </span>
+          <span className="row gap4">
+            <Icon name="elev" size={11} className="rotate-180" /> −{Math.round(r.descentM)}
+          </span>
+        </div>
+      );
+      const statsChips = (
+        <div className="row gap6 flex-wrap">
           <span className="chip mono" style={{ fontSize: 10, padding: '1px 7px' }}>
             <Icon name="ruler" size={11} /> {(r.distanceM / 1000).toFixed(1)} km
           </span>
@@ -247,33 +299,36 @@ export function PinView({ pin, authorName, canEdit, onDelete, onEdit, onReact, m
       );
       return wrap(
         <>
-          <Head icon="route" label="Ruta" author={authorName} onDelete={onDelete} onEdit={onEdit} canEdit={canEdit} />
-          <div className="pin__body">
-            <div
-              className="relative h-44 cursor-zoom-in overflow-hidden rounded-md"
-              onClick={() => setExpanded(true)}
+          <div className="relative h-56 cursor-zoom-in" onClick={() => setExpanded(true)}>
+            <TopoMapLibre
+              center={start ?? DEFAULT_CENTER}
+              layer={r.layer ?? 'base'}
+              route={r.geometry}
+              marks={marks}
+              interactive={false}
+              controls
+              className="absolute inset-0"
+            />
+            <PinMapOverlay
+              label={r.name}
+              icon="route"
+              canEdit={canEdit}
+              onEdit={onEdit}
+              onDelete={onDelete}
+              onExpand={() => setExpanded(true)}
             >
-              <TopoMapLibre
-                center={start ?? DEFAULT_CENTER}
-                route={r.geometry}
-                marks={marks}
-                interactive={false}
-                className="absolute inset-0"
-              />
-              <ExpandBtn onClick={() => setExpanded(true)} />
-            </div>
-            <div className="mt-1.5 font-display text-sm">{r.name}</div>
-            {stats}
-            <Reactions pin={pin} meId={meId} onReact={onReact} />
+              {statsLine}
+            </PinMapOverlay>
           </div>
           <ExpandedMapModal
             open={expanded}
             onClose={() => setExpanded(false)}
             title={r.name}
             center={start ?? DEFAULT_CENTER}
+            layer={r.layer ?? 'base'}
             route={r.geometry}
             marks={marks}
-            footer={stats}
+            footer={statsChips}
           />
         </>,
       );
