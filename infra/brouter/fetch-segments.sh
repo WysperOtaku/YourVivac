@@ -15,14 +15,15 @@ DEST="${1:-/segments}"
 
 mkdir -p "$DEST"
 
-# Tiles de 5°x5°. Iberia: W010/W005/E000 (lon) x N35/N40 (lat).
+# Tiles de 5°x5°. Iberia: W10/W5/E0 (lon) x N35/N40 (lat).
+# OJO: BRouter NO rellena con ceros (es W10_N40, no W010_N40) → con ceros da 404.
 SEGMENTS="
-W010_N35.rd5
-W005_N35.rd5
-E000_N35.rd5
-W010_N40.rd5
-W005_N40.rd5
-E000_N40.rd5
+W10_N35.rd5
+W5_N35.rd5
+E0_N35.rd5
+W10_N40.rd5
+W5_N40.rd5
+E0_N40.rd5
 "
 
 for seg in $SEGMENTS; do
