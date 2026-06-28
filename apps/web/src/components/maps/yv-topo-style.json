@@ -1,0 +1,38 @@
+{
+  "version": 8,
+  "name": "YourVivac Topo IGN",
+  "metadata": {
+    "yourvivac:theme": "topo",
+    "yourvivac:note": "Las teselas reales (`sources.yv-topo.tiles`) y los colores las inyecta TopoMapLibre en runtime desde `api.maps` y los tokens de yv.css."
+  },
+  "sources": {
+    "yv-topo": {
+      "type": "raster",
+      "tiles": ["/api/v1/maps/tiles/mtn/{z}/{x}/{y}"],
+      "tileSize": 256,
+      "minzoom": 0,
+      "maxzoom": 18,
+      "attribution": "© IGN España"
+    }
+  },
+  "layers": [
+    {
+      "id": "yv-background",
+      "type": "background",
+      "paint": {
+        "background-color": "#1c271f"
+      }
+    },
+    {
+      "id": "yv-topo-raster",
+      "type": "raster",
+      "source": "yv-topo",
+      "paint": {
+        "raster-opacity": 0.96,
+        "raster-fade-duration": 220,
+        "raster-saturation": -0.08,
+        "raster-contrast": 0.04
+      }
+    }
+  ]
+}

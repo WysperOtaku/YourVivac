@@ -1,0 +1,90 @@
+/* Estética YourVivac para los marcadores del mapa topográfico (MapLibre).
+   Usa los tokens de yv.css (--accent, --terra, --bg*, --ink*) que cascadean
+   desde el documento, así el pin respeta el tema claro/oscuro activo. */
+
+.yv-topo-pin {
+  position: relative;
+  display: grid;
+  place-items: center;
+  cursor: pointer;
+  /* el ancla del Marker queda en el centro; desplazamos para que la punta mire al punto */
+  transform: translateY(-2px);
+}
+
+.yv-topo-pin__badge {
+  display: grid;
+  place-items: center;
+  width: 26px;
+  height: 26px;
+  border-radius: 999px 999px 999px 2px;
+  rotate: 45deg;
+  color: var(--accent-ink);
+  background: var(--accent);
+  box-shadow:
+    0 0 0 2px var(--bg),
+    0 2px 6px rgba(0, 0, 0, 0.35);
+}
+
+/* el icono se contra-rota para quedar recto dentro del pin en forma de gota */
+.yv-topo-pin__badge > svg {
+  rotate: -45deg;
+}
+
+/* variantes de color por tipo de marca */
+.yv-topo-pin[data-kind='cumbre'] .yv-topo-pin__badge {
+  background: var(--terra);
+  color: #fff;
+}
+.yv-topo-pin[data-kind='refugio'] .yv-topo-pin__badge,
+.yv-topo-pin[data-kind='vivac'] .yv-topo-pin__badge {
+  background: var(--terra);
+  color: #fff;
+}
+.yv-topo-pin[data-kind='fuente'] .yv-topo-pin__badge,
+.yv-topo-pin[data-kind='parking'] .yv-topo-pin__badge {
+  background: var(--sky);
+  color: #06222a;
+}
+
+.yv-topo-pin__label {
+  position: absolute;
+  bottom: calc(100% + 6px);
+  left: 50%;
+  transform: translateX(-50%) translateY(4px);
+  padding: 2px 7px;
+  border-radius: 7px;
+  white-space: nowrap;
+  font-size: 11px;
+  line-height: 1.4;
+  font-family: var(--font-mono, ui-monospace, monospace);
+  color: var(--ink);
+  background: color-mix(in srgb, var(--bg-2) 92%, transparent);
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--accent) 26%, transparent);
+  opacity: 0;
+  pointer-events: none;
+  transition:
+    opacity 0.12s ease,
+    transform 0.12s ease;
+}
+
+.yv-topo-pin:hover .yv-topo-pin__label,
+.yv-topo-pin.is-open .yv-topo-pin__label {
+  opacity: 1;
+  transform: translateX(-50%) translateY(0);
+}
+
+/* punto de inicio/fin de ruta */
+.yv-topo-dot {
+  width: 16px;
+  height: 16px;
+  border-radius: 999px;
+  box-shadow:
+    0 0 0 3px var(--bg),
+    0 1px 4px rgba(0, 0, 0, 0.35);
+}
+.yv-topo-dot--start {
+  background: var(--accent);
+}
+.yv-topo-dot--end {
+  background: var(--terra);
+}
