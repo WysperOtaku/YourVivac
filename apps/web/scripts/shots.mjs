@@ -53,7 +53,11 @@ const pins = [
   { id: 'p2', tripId: 'demo123', authorId: 'u3', type: 'text', layout: { x: 280, y: 40, rotation: 1.5, z: 2, w: 200 }, text: { body: '¿Coche compartido? Salgo de Jaca el viernes a las 16h. Caben 3 🚗', color: '#a8d77c' }, reactions: [{ userId: 'u1', emoji: '❤️' }] },
   { id: 'p3', tripId: 'demo123', authorId: 'u1', type: 'link', layout: { x: 30, y: 300, rotation: 1, z: 3, w: 210 }, link: { url: 'https://alberges.com', title: 'Refugio de la Renclusa', domain: 'alberges.com' }, reactions: [] },
   { id: 'p4', tripId: 'demo123', authorId: 'u2', type: 'map', layout: { x: 300, y: 320, rotation: -1.5, z: 4, w: 210 }, map: { label: 'Pico Aneto', coords: { lat: 42.63, lng: 0.65 } }, reactions: [] },
+  { id: 'p5', tripId: 'demo123', authorId: 'u1', type: 'topo', layout: { x: 40, y: 560, rotation: -1, z: 5, w: 210 }, topo: { label: 'Macizo de la Maladeta', center: { lat: 42.64, lng: 0.652 }, zoom: 13, layer: 'mtn', marks: [{ coords: { lat: 42.648, lng: 0.656 }, kind: 'cumbre', label: 'Aneto' }, { coords: { lat: 42.63, lng: 0.65 }, kind: 'refugio', label: 'Renclusa' }] }, reactions: [] },
+  { id: 'p6', tripId: 'demo123', authorId: 'u2', type: 'route', layout: { x: 300, y: 580, rotation: 1.5, z: 6, w: 210 }, route: { name: 'Renclusa → Aneto', profile: 'mountain', waypoints: [{ lat: 42.63, lng: 0.65 }, { lat: 42.648, lng: 0.656 }], geometry: [{ lat: 42.63, lng: 0.65 }, { lat: 42.638, lng: 0.652 }, { lat: 42.648, lng: 0.656 }], distanceM: 6200, ascentM: 1180, descentM: 120, durationMin: 240 }, reactions: [] },
 ];
+const routeResult = { profile: 'mountain', waypoints: [{ lat: 42.63, lng: 0.65 }, { lat: 42.648, lng: 0.656 }], geometry: [{ lat: 42.63, lng: 0.65 }, { lat: 42.638, lng: 0.652 }, { lat: 42.648, lng: 0.656 }], distanceM: 6200, ascentM: 1180, descentM: 120, durationMin: 240 };
+const geocode = [{ name: 'Pico Aneto', coords: { lat: 42.648, lng: 0.656 }, context: 'Huesca' }, { name: 'Refugio de la Renclusa', coords: { lat: 42.63, lng: 0.65 }, context: 'Benasque' }];
 const messages = [
   { id: 'm1', tripId: 'demo123', authorId: 'u2', type: 'text', body: '¿Confirmamos el refugio para el viernes?', readBy: [], createdAt: '2026-06-18T10:00:00Z' },
   { id: 'm2', tripId: 'demo123', authorId: 'u1', type: 'text', body: 'Sí, reservo yo. Somos 3 ✋', readBy: [], createdAt: '2026-06-18T10:05:00Z' },
@@ -72,7 +76,8 @@ function resolve(p) {
   if (p === '/auth/me') return user;
   if (p === '/users/search') return members.filter((m) => m.id !== user.id);
   if (p === '/users/suggestions') return members.filter((m) => m.id !== user.id);
-  if (p === '/maps/search') return [];
+  if (p === '/maps/search') return geocode;
+  if (p === '/routing') return routeResult;
   if (p === '/feed') return paginated(feed);
   if (p === '/trips') return trips;
   if (/^\/trips\/[^/]+\/board$/.test(p)) return pins;

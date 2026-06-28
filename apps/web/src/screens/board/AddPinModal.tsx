@@ -1,24 +1,59 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
-import type { CreatePinRequest, PinType } from '@yourvivac/types';
+import type {
+  CreatePinRequest,
+  PinType,
+  RouteProfile,
+  RouteResult,
+  TopoLayer,
+  TopoMark,
+  TopoMarkKind,
+} from '@yourvivac/types';
 import { Field, Icon, Modal } from '@/ui';
 import { api } from '@/lib/api';
 import { errMsg } from '@/lib/errMsg';
 import { uploadImage } from '@/lib/upload';
-import { isMapsConfigured, type LatLng } from '@/lib/maps';
+import { isMapsConfigured, DEFAULT_CENTER, type LatLng } from '@/lib/maps';
 import { TopoMap } from '@/components/maps/TopoMap';
+import { TopoMapLibre } from '@/components/maps/TopoMapLibre';
 import { LocationSearch } from '@/components/maps/LocationSearch';
 
-const TYPES: { key: PinType; label: string; icon: 'note' | 'image' | 'link' | 'list' | 'pin' }[] = [
+const TYPES: { key: PinType; label: string; icon: 'note' | 'image' | 'link' | 'list' | 'pin' | 'mountain' | 'route' }[] = [
   { key: 'note', label: 'Nota', icon: 'note' },
   { key: 'text', label: 'Aviso', icon: 'note' },
   { key: 'photo', label: 'Foto', icon: 'image' },
   { key: 'link', label: 'Enlace', icon: 'link' },
   { key: 'map', label: 'Mapa', icon: 'pin' },
+  { key: 'topo', label: 'Mapa topo', icon: 'mountain' },
+  { key: 'route', label: 'Ruta', icon: 'route' },
   { key: 'list', label: 'Lista', icon: 'list' },
 ];
 const COLORS = ['#a8d77c', '#d68a57', '#79b8c4', '#e7ddc6'];
+
+/** Capas base del mapa topográfico IGN. */
+const LAYERS: { key: TopoLayer; label: string }[] = [
+  { key: 'mtn', label: 'Mapa' },
+  { key: 'relieve', label: 'Relieve' },
+  { key: 'ortofoto', label: 'Satélite' },
+  { key: 'base', label: 'Base' },
+];
+/** Iconografía YourVivac que se suelta sobre el mapa topo. */
+const MARK_KINDS: { key: TopoMarkKind; label: string }[] = [
+  { key: 'cumbre', label: 'Cumbre' },
+  { key: 'refugio', label: 'Refugio' },
+  { key: 'fuente', label: 'Fuente' },
+  { key: 'vivac', label: 'Vivac' },
+  { key: 'parking', label: 'Parking' },
+  { key: 'cruce', label: 'Cruce' },
+  { key: 'punto', label: 'Punto' },
+];
+/** Perfiles de cálculo de ruta (BRouter). */
+const PROFILES: { key: RouteProfile; label: string }[] = [
+  { key: 'hiking', label: 'Senderismo' },
+  { key: 'trekking', label: 'Trekking' },
+  { key: 'mountain', label: 'Montaña' },
+];
 
 /** Posición inicial pseudo-aleatoria dentro del mural. */
 function randomLayout() {
@@ -48,7 +83,42 @@ export function AddPinModal({ open, onClose, tripId }: { open: boolean; onClose:
   const [photoMedia, setPhotoMedia] = useState<{ url: string; publicId: string } | null>(null);
   const [gearListId, setGearListId] = useState('');
 
+  // Pin topo (mapa topográfico IGN con marcas YourVivac)
+  const [topoLabel, setTopoLabel] = useState('');
+  const [topoCenter, setTopoCenter] = useState<LatLng>(DEFAULT_CENTER);
+  const [topoLayer, setTopoLayer] = useState<TopoLayer>('mtn');
+  const [topoMarks, setTopoMarks] = useState<TopoMark[]>([]);
+  const [topoMarkKind, setTopoMarkKind] = useState<TopoMarkKind>('cumbre');
+  const [topoMarkLabel, setTopoMarkLabel] = useState('');
+  const [topoQ, setTopoQ] = useState('');
+  const [topoDebounced, setTopoDebounced] = useState('');
+
+  // Pin route (ruta calculada por BRouter)
+  const [routeName, setRouteName] = useState('');
+  const [routeProfile, setRouteProfile] = useState<RouteProfile>('hiking');
+  const [routeLayer, setRouteLayer] = useState<TopoLayer>('mtn');
+  const [routeWaypoints, setRouteWaypoints] = useState<LatLng[]>([]);
+  const [routeResult, setRouteResult] = useState<RouteResult | null>(null);
+
   const gearQ = useQuery({ queryKey: ['gear'], queryFn: () => api.gear.list(), enabled: open && type === 'list', retry: false });
+
+  // Buscador de topónimos (debounced, como el PeoplePicker).
+  useEffect(() => {
+    const t = setTimeout(() => setTopoDebounced(topoQ.trim()), 220);
+    return () => clearTimeout(t);
+  }, [topoQ]);
+  const geoQ = useQuery({
+    queryKey: ['maps-search', topoDebounced],
+    queryFn: () => api.maps.search(topoDebounced),
+    enabled: open && type === 'topo' && topoDebounced.length >= 2,
+    retry: false,
+  });
+
+  const routeMut = useMutation({
+    mutationFn: () => api.routing.route({ profile: routeProfile, waypoints: routeWaypoints }),
+    onSuccess: (res) => setRouteResult(res),
+    onError: (e) => toast.error(errMsg(e, 'No se pudo calcular la ruta')),
+  });
 
   function reset() {
     setMarkdown('');
@@ -58,6 +128,18 @@ export function AddPinModal({ open, onClose, tripId }: { open: boolean; onClose:
     setRoutePath([]);
     setPhotoMedia(null);
     setGearListId('');
+    setTopoLabel('');
+    setTopoCenter(DEFAULT_CENTER);
+    setTopoLayer('mtn');
+    setTopoMarks([]);
+    setTopoMarkKind('cumbre');
+    setTopoMarkLabel('');
+    setTopoQ('');
+    setRouteName('');
+    setRouteProfile('hiking');
+    setRouteLayer('mtn');
+    setRouteWaypoints([]);
+    setRouteResult(null);
   }
 
   const createMut = useMutation({
@@ -86,6 +168,31 @@ export function AddPinModal({ open, onClose, tripId }: { open: boolean; onClose:
               label: mapLabel,
               coords: { lat: Number(lat), lng: Number(lng) },
               ...(routePath.length > 1 ? { path: routePath } : {}),
+            },
+          };
+          break;
+        case 'topo':
+          payload = {
+            type,
+            layout,
+            topo: { label: topoLabel, center: topoCenter, zoom: 13, layer: topoLayer, marks: topoMarks },
+          };
+          break;
+        case 'route':
+          if (!routeResult) throw new Error('Calcula la ruta primero');
+          payload = {
+            type,
+            layout,
+            route: {
+              name: routeName,
+              profile: routeResult.profile,
+              waypoints: routeResult.waypoints,
+              geometry: routeResult.geometry,
+              distanceM: routeResult.distanceM,
+              ascentM: routeResult.ascentM,
+              descentM: routeResult.descentM,
+              ...(routeResult.durationMin != null ? { durationMin: routeResult.durationMin } : {}),
+              layer: routeLayer,
             },
           };
           break;
@@ -228,6 +335,173 @@ export function AddPinModal({ open, onClose, tripId }: { open: boolean; onClose:
                 </div>
               </>
             )}
+          </>
+        )}
+
+        {type === 'topo' && (
+          <>
+            <div className="stack gap6">
+              <span className="eyebrow">Buscar topónimo</span>
+              <div className="row gap10 rounded-control bg-bg-2 px-3.5 py-2.5 shadow-[inset_0_0_0_1px_var(--line)] focus-within:shadow-[inset_0_0_0_1.5px_var(--accent)]">
+                <Icon name="search" size={17} className="text-ink-3" />
+                <input
+                  className="grow bg-transparent text-[14.5px] text-ink outline-none placeholder:text-ink-3"
+                  placeholder="Aneto, Renclusa, Posets…"
+                  value={topoQ}
+                  onChange={(e) => setTopoQ(e.target.value)}
+                />
+              </div>
+              {topoDebounced.length >= 2 && (geoQ.data ?? []).length > 0 && (
+                <div className="stack max-h-40 overflow-auto rounded-control bg-bg-2 shadow-[inset_0_0_0_1px_var(--line)]">
+                  {(geoQ.data ?? []).map((g, i) => (
+                    <button
+                      key={`${g.name}-${i}`}
+                      type="button"
+                      onClick={() => {
+                        setTopoCenter(g.coords);
+                        if (!topoLabel) setTopoLabel(g.name);
+                        setTopoQ('');
+                      }}
+                      className="row gap8 w-full px-3 py-2 text-left text-[14px] hover:bg-bg-3"
+                    >
+                      <Icon name="pin" size={14} className="text-ink-3" />
+                      <span className="grow truncate">{g.name}</span>
+                      {g.context && <span className="faint mono text-[11px]">{g.context}</span>}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            <Field label="Etiqueta" placeholder="Macizo de la Maladeta" value={topoLabel} onChange={(e) => setTopoLabel(e.target.value)} />
+
+            <div className="stack gap6">
+              <span className="eyebrow">Capa base</span>
+              <div className="row gap6 flex-wrap">
+                {LAYERS.map((l) => (
+                  <button key={l.key} type="button" onClick={() => setTopoLayer(l.key)} className={`chip cursor-pointer ${topoLayer === l.key ? 'chip--accent' : ''}`}>
+                    {l.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div className="stack gap6">
+              <span className="eyebrow">Marca a soltar</span>
+              <div className="row gap6 flex-wrap">
+                {MARK_KINDS.map((k) => (
+                  <button key={k.key} type="button" onClick={() => setTopoMarkKind(k.key)} className={`chip cursor-pointer ${topoMarkKind === k.key ? 'chip--accent' : ''}`}>
+                    {k.label}
+                  </button>
+                ))}
+              </div>
+              <Field label="Etiqueta de la marca (opcional)" placeholder="Pico Aneto" value={topoMarkLabel} onChange={(e) => setTopoMarkLabel(e.target.value)} />
+            </div>
+
+            <div className="stack gap6">
+              <div className="spread">
+                <span className="eyebrow">Toca el mapa para soltar marcas</span>
+                <span className="row gap8">
+                  <button type="button" className="chip cursor-pointer" onClick={() => setTopoMarks((m) => m.slice(0, -1))}>
+                    Deshacer
+                  </button>
+                  <button type="button" className="chip cursor-pointer" onClick={() => setTopoMarks([])}>
+                    Borrar
+                  </button>
+                </span>
+              </div>
+              <TopoMapLibre
+                key={`${topoCenter.lat},${topoCenter.lng}`}
+                interactive
+                center={topoCenter}
+                zoom={13}
+                layer={topoLayer}
+                marks={topoMarks}
+                onClick={(c) => setTopoMarks((m) => [...m, { coords: c, kind: topoMarkKind, ...(topoMarkLabel.trim() ? { label: topoMarkLabel.trim() } : {}) }])}
+                className="h-56 overflow-hidden rounded-card"
+              />
+              <span className="faint mono text-[11px]">{topoMarks.length} marcas</span>
+            </div>
+          </>
+        )}
+
+        {type === 'route' && (
+          <>
+            <Field label="Nombre" placeholder="Renclusa → Aneto" value={routeName} onChange={(e) => setRouteName(e.target.value)} />
+
+            <div className="stack gap6">
+              <span className="eyebrow">Perfil</span>
+              <div className="row gap6 flex-wrap">
+                {PROFILES.map((p) => (
+                  <button
+                    key={p.key}
+                    type="button"
+                    onClick={() => { setRouteProfile(p.key); setRouteResult(null); }}
+                    className={`chip cursor-pointer ${routeProfile === p.key ? 'chip--accent' : ''}`}
+                  >
+                    {p.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div className="stack gap6">
+              <span className="eyebrow">Capa base</span>
+              <div className="row gap6 flex-wrap">
+                {LAYERS.map((l) => (
+                  <button key={l.key} type="button" onClick={() => setRouteLayer(l.key)} className={`chip cursor-pointer ${routeLayer === l.key ? 'chip--accent' : ''}`}>
+                    {l.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div className="stack gap6">
+              <div className="spread">
+                <span className="eyebrow">Toca el mapa para añadir waypoints</span>
+                <span className="row gap8">
+                  <button type="button" className="chip cursor-pointer" onClick={() => { setRouteWaypoints((w) => w.slice(0, -1)); setRouteResult(null); }}>
+                    Deshacer
+                  </button>
+                  <button type="button" className="chip cursor-pointer" onClick={() => { setRouteWaypoints([]); setRouteResult(null); }}>
+                    Borrar
+                  </button>
+                </span>
+              </div>
+              <TopoMapLibre
+                key={routeWaypoints[0] ? `${routeWaypoints[0].lat},${routeWaypoints[0].lng}` : 'route-start'}
+                interactive
+                center={routeWaypoints[0] ?? routeResult?.geometry[0] ?? DEFAULT_CENTER}
+                zoom={13}
+                layer={routeLayer}
+                route={routeResult?.geometry}
+                marks={routeWaypoints.map((c, i) => ({
+                  coords: c,
+                  kind: 'punto',
+                  label: i === 0 ? 'Inicio' : i === routeWaypoints.length - 1 ? 'Fin' : String(i + 1),
+                }))}
+                onClick={(c) => { setRouteWaypoints((w) => [...w, c]); setRouteResult(null); }}
+                className="h-56 overflow-hidden rounded-card"
+              />
+              <div className="spread">
+                <span className="faint mono text-[11px]">{routeWaypoints.length} waypoints</span>
+                <button
+                  type="button"
+                  className="btn px-3 py-1.5 text-xs"
+                  disabled={routeWaypoints.length < 2 || routeMut.isPending}
+                  onClick={() => routeMut.mutate()}
+                >
+                  <Icon name="route" size={14} /> {routeMut.isPending ? 'Calculando…' : 'Calcular ruta'}
+                </button>
+              </div>
+              {routeResult && (
+                <div className="row gap6 flex-wrap">
+                  <span className="chip mono"><Icon name="ruler" size={12} /> {(routeResult.distanceM / 1000).toFixed(1)} km</span>
+                  <span className="chip mono"><Icon name="elev" size={12} /> +{Math.round(routeResult.ascentM)} m</span>
+                  <span className="chip mono"><Icon name="elev" size={12} className="rotate-180" /> −{Math.round(routeResult.descentM)} m</span>
+                </div>
+              )}
+            </div>
           </>
         )}
 

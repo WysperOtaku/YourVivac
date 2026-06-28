@@ -21,13 +21,15 @@ import { AddPinModal } from './AddPinModal';
 
 type View = 'mural' | 'wall' | 'guided';
 
-const GROUPS: { type: PinType; icon: 'list' | 'image' | 'note' | 'pin' | 'link'; title: string }[] = [
+const GROUPS: { type: PinType; icon: 'list' | 'image' | 'note' | 'pin' | 'link' | 'mountain' | 'route'; title: string }[] = [
   { type: 'list', icon: 'list', title: 'Equipo' },
   { type: 'photo', icon: 'image', title: 'Fotos y enlaces' },
   { type: 'link', icon: 'link', title: 'Enlaces' },
   { type: 'note', icon: 'note', title: 'Notas' },
   { type: 'text', icon: 'note', title: 'Avisos' },
   { type: 'map', icon: 'pin', title: 'Mapa' },
+  { type: 'topo', icon: 'mountain', title: 'Mapas topo' },
+  { type: 'route', icon: 'route', title: 'Rutas' },
 ];
 
 function useIsDesktop() {
