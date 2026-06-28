@@ -2,10 +2,11 @@ import type { CSSProperties } from 'react';
 import Markdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import rehypeSanitize from 'rehype-sanitize';
-import type { Pin } from '@yourvivac/types';
+import type { Pin, TopoMark } from '@yourvivac/types';
 import { Avatar, Icon } from '@/ui';
-import { isMapsConfigured } from '@/lib/maps';
+import { isMapsConfigured, DEFAULT_CENTER } from '@/lib/maps';
 import { TopoMap } from '@/components/maps/TopoMap';
+import { TopoMapLibre } from '@/components/maps/TopoMapLibre';
 
 interface PinViewProps {
   pin: Pin;
@@ -20,7 +21,7 @@ interface PinViewProps {
   flat?: boolean;
 }
 
-function Head({ icon, label, author, onDelete, canEdit }: { icon: 'note' | 'link' | 'list' | 'pin' | 'image'; label: string; author?: string; onDelete?: () => void; canEdit?: boolean }) {
+function Head({ icon, label, author, onDelete, canEdit }: { icon: 'note' | 'link' | 'list' | 'pin' | 'image' | 'mountain' | 'route'; label: string; author?: string; onDelete?: () => void; canEdit?: boolean }) {
   return (
     <div className="pin__head">
       <Icon name={icon} size={13} /> {label}
@@ -153,6 +154,62 @@ export function PinView({ pin, authorName, canEdit, onDelete, onReact, meId, sty
         </>,
       );
 
+    case 'topo':
+      return wrap(
+        <>
+          <Head icon="mountain" label="Mapa topo" author={authorName} onDelete={onDelete} canEdit={canEdit} />
+          <div className="pin__body">
+            <TopoMapLibre
+              center={pin.topo.center}
+              zoom={pin.topo.zoom}
+              layer={pin.topo.layer}
+              marks={pin.topo.marks}
+              interactive={false}
+              className="h-28 overflow-hidden rounded-md"
+            />
+            <div className="mt-1.5 font-display text-sm">{pin.topo.label}</div>
+            <Reactions pin={pin} meId={meId} onReact={onReact} />
+          </div>
+        </>,
+      );
+
+    case 'route': {
+      const r = pin.route;
+      // El mapa se centra en el primer punto de la geometría calculada.
+      const start = r.geometry[0] ?? r.waypoints[0];
+      const end = r.geometry[r.geometry.length - 1] ?? r.waypoints[r.waypoints.length - 1];
+      const marks: TopoMark[] = [];
+      if (start) marks.push({ coords: start, kind: 'punto', label: 'Inicio' });
+      if (end) marks.push({ coords: end, kind: 'punto', label: 'Fin' });
+      return wrap(
+        <>
+          <Head icon="route" label="Ruta" author={authorName} onDelete={onDelete} canEdit={canEdit} />
+          <div className="pin__body">
+            <TopoMapLibre
+              center={start ?? DEFAULT_CENTER}
+              route={r.geometry}
+              marks={marks}
+              interactive={false}
+              className="h-28 overflow-hidden rounded-md"
+            />
+            <div className="mt-1.5 font-display text-sm">{r.name}</div>
+            <div className="row gap6 mt-1 flex-wrap">
+              <span className="chip mono" style={{ fontSize: 10, padding: '1px 7px' }}>
+                <Icon name="ruler" size={11} /> {(r.distanceM / 1000).toFixed(1)} km
+              </span>
+              <span className="chip mono" style={{ fontSize: 10, padding: '1px 7px' }}>
+                <Icon name="elev" size={11} /> +{Math.round(r.ascentM)} m
+              </span>
+              <span className="chip mono" style={{ fontSize: 10, padding: '1px 7px' }}>
+                <Icon name="elev" size={11} className="rotate-180" /> −{Math.round(r.descentM)} m
+              </span>
+            </div>
+            <Reactions pin={pin} meId={meId} onReact={onReact} />
+          </div>
+        </>,
+      );
+    }
+
     case 'list':
       return wrap(
         <>
@@ -172,7 +229,7 @@ export function PinView({ pin, authorName, canEdit, onDelete, onReact, meId, sty
 }
 
 function tackClass(type: Pin['type']): string {
-  if (type === 'photo' || type === 'map') return 'sky';
-  if (type === 'list' || type === 'text') return 'green';
+  if (type === 'photo' || type === 'map' || type === 'route') return 'sky';
+  if (type === 'list' || type === 'text' || type === 'topo') return 'green';
   return '';
 }
