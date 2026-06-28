@@ -17,8 +17,9 @@ import {
   MapPin,
   type LucideIcon,
 } from 'lucide-react';
-import type { TopoMark, TopoMarkKind } from '@yourvivac/types';
+import type { ThemeName, TopoMark, TopoMarkKind } from '@yourvivac/types';
 import { api } from '@/lib/api';
+import { useUiStore } from '@/stores/uiStore';
 import type { LatLng } from '@/lib/maps';
 import rawStyle from './yv-topo-style.json';
 import './topo-maplibre.css';
@@ -95,11 +96,39 @@ function buildRasterStyle(layer: string, host: HTMLElement): StyleSpecification 
  * la estética YourVivac. Vectorial → nítido y legible a cualquier zoom (arregla
  * el UX del zoom del raster). El intervalo de curvas se adapta por nivel de zoom.
  */
-function buildTopoStyle(): StyleSpecification {
+/** Paleta del topo según el tema de la app (dibujo ilustrado, no relieve fotográfico). */
+function topoPalette(theme: ThemeName) {
+  return theme === 'dark'
+    ? {
+        bg: '#131a16', // superficie oscura YourVivac
+        minor: '#627d57',
+        major: '#8fbb73',
+        label: '#a8ce8f',
+        halo: '#0e1411',
+        hsShadow: '#0a0f0c',
+        hsHighlight: '#222e26',
+        hsAccent: '#2b3a2d',
+      }
+    : {
+        bg: '#efe8d8', // papel cálido claro
+        minor: '#b49b72',
+        major: '#7f5f36',
+        label: '#6e5230',
+        halo: '#efe8d8',
+        hsShadow: '#b8a988',
+        hsHighlight: '#fffdf6',
+        hsAccent: '#cdbf9d',
+      };
+}
+
+/**
+ * Style «Topo YV»: NUESTRO mapa topográfico como DIBUJO vectorial (no relieve
+ * fotográfico). Curvas de nivel protagonistas + sombreado muy sutil, con paleta
+ * que sigue el tema de la app (oscuro/claro). Generado en cliente desde el DEM.
+ */
+function buildTopoStyle(theme: ThemeName): StyleSpecification {
   const dem = getDemSource();
-  const MINOR = '#9a7a4e';
-  const MAJOR = '#6e4f2c';
-  const PAPER = '#ece5d5';
+  const P = topoPalette(theme);
   return {
     version: 8,
     name: 'YourVivac Topo',
@@ -135,16 +164,17 @@ function buildTopoStyle(): StyleSpecification {
       },
     },
     layers: [
-      { id: 'yv-background', type: 'background', paint: { 'background-color': PAPER } },
+      { id: 'yv-background', type: 'background', paint: { 'background-color': P.bg } },
       {
+        // Sombreado MUY sutil (un lavado de profundidad, no «papel arrugado»).
         id: 'yv-hillshade',
         type: 'hillshade',
         source: 'yv-dem',
         paint: {
-          'hillshade-exaggeration': 0.4,
-          'hillshade-shadow-color': '#5c4a2e',
-          'hillshade-accent-color': '#6f8a5e',
-          'hillshade-highlight-color': '#fbf6ea',
+          'hillshade-exaggeration': 0.16,
+          'hillshade-shadow-color': P.hsShadow,
+          'hillshade-accent-color': P.hsAccent,
+          'hillshade-highlight-color': P.hsHighlight,
         },
       },
       {
@@ -153,7 +183,7 @@ function buildTopoStyle(): StyleSpecification {
         source: 'yv-contours',
         'source-layer': 'contours',
         filter: ['!=', ['get', 'level'], 1],
-        paint: { 'line-color': MINOR, 'line-width': 0.8, 'line-opacity': 0.55 },
+        paint: { 'line-color': P.minor, 'line-width': 0.7, 'line-opacity': 0.55 },
       },
       {
         id: 'yv-contour-major',
@@ -161,7 +191,7 @@ function buildTopoStyle(): StyleSpecification {
         source: 'yv-contours',
         'source-layer': 'contours',
         filter: ['==', ['get', 'level'], 1],
-        paint: { 'line-color': MAJOR, 'line-width': 1.4, 'line-opacity': 0.8 },
+        paint: { 'line-color': P.major, 'line-width': 1.4, 'line-opacity': 0.95 },
       },
       {
         id: 'yv-contour-label',
@@ -177,8 +207,8 @@ function buildTopoStyle(): StyleSpecification {
           'symbol-spacing': 220,
         },
         paint: {
-          'text-color': MAJOR,
-          'text-halo-color': PAPER,
+          'text-color': P.label,
+          'text-halo-color': P.halo,
           'text-halo-width': 1.4,
         },
       },
@@ -186,9 +216,9 @@ function buildTopoStyle(): StyleSpecification {
   } as StyleSpecification;
 }
 
-/** Devuelve el style según la capa: «base» = Topo YV (relieve+curvas); resto = raster IGN. */
-function buildStyle(layer: string, host: HTMLElement): StyleSpecification {
-  return layer === 'base' ? buildTopoStyle() : buildRasterStyle(layer, host);
+/** Devuelve el style según la capa: «base» = Topo YV (dibujo + curvas); resto = raster IGN. */
+function buildStyle(layer: string, host: HTMLElement, theme: ThemeName): StyleSpecification {
+  return layer === 'base' ? buildTopoStyle(theme) : buildRasterStyle(layer, host);
 }
 
 /** Crea el elemento HTML de un pin de marca con iconografía YourVivac. */
@@ -241,6 +271,8 @@ export function TopoMapLibre({
   const onClickRef = useRef(onClick);
   onClickRef.current = onClick;
   const [ready, setReady] = useState(false);
+  // Tema de la app: el style «Topo YV» usa paleta oscura/clara y se reconstruye al cambiar.
+  const theme = useUiStore((s) => s.theme);
 
   // --- Crear / destruir el mapa (se recrea solo al cambiar capa o modo) ---
   useEffect(() => {
@@ -249,7 +281,7 @@ export function TopoMapLibre({
 
     const map = new maplibregl.Map({
       container: host,
-      style: buildStyle(layer, host),
+      style: buildStyle(layer, host, theme),
       center: [center.lng, center.lat],
       zoom,
       interactive,
@@ -287,7 +319,7 @@ export function TopoMapLibre({
     };
     // center/zoom iniciales se aplican aquí; sus cambios posteriores van en otro efecto.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [layer, interactive]);
+  }, [layer, interactive, theme]);
 
   // --- Marcas (Markers con pin YourVivac) ---
   useEffect(() => {
